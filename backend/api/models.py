@@ -42,8 +42,8 @@ class User(AbstractUser):
         choices=USER_STATUS_CHOICES,
         default='available'
     )
-    bio = models.TextField(blank=True)  # AI embeddings
-    embedding = VectorField(dimensions=1536, blank=True, null=True)  # OpenAI embeddings
+    bio = models.TextField(blank=True)  # Usado para embeddings de IA
+    embedding = VectorField(dimensions=1536, blank=True, null=True)  # embeddings con OpenAI
 
     def is_student(self):
         return self.user_type == self.STUDENT
@@ -55,6 +55,7 @@ class Project(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    # Los proyectos tienen un asesor
     mentor = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -63,12 +64,14 @@ class Project(models.Model):
         limit_choices_to={'user_type': User.MENTOR},
         related_name='mentored_projects'
     )
+    # Los proyectos tienen estudiantes
     students = models.ManyToManyField(
         User,
         related_name='projects_as_student',
         blank=True,
         limit_choices_to={'user_type': User.STUDENT},
     )
+    # Los proyectos tienen un creador
     creator = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -109,8 +112,8 @@ class Comment(models.Model):
 
 class ProjectMatchInterest(models.Model):
     '''
-    Tracks whether a user liked/disliked a project.
-    Ensures each user can vote once per project (unique_together).
+    Registra si un usuario dio me gusta/no me gusta a un proyecto.
+    Asegura que cada usuario puede votar una vez por proyecto (unique_together).
     '''
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='project_likes')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='liked_by_users')
@@ -121,13 +124,13 @@ class ProjectMatchInterest(models.Model):
         unique_together = ('user', 'project')
 
     def __str__(self):
-        return f"{self.user.username} {'liked' if self.liked else 'disliked'} {self.project.name}"
+        return f"{self.user.username} {'dio me gusta a' if self.liked else 'dio no me gusta a'} {self.project.name}"
 
 
 class UserMatchInterest(models.Model):
     '''
-    Tracks whether a project (via its admin/mentor) liked/disliked a user.
-    Same uniqueness constraint per user-project pair.
+    Registra si un proyecto (a través de su asesor/creador) dio me gusta/no me gusta a un usuario.
+    Misma restricción de valores únicos por par usuario-proyecto.
     '''
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='user_likes')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='liked_by_projects')
@@ -138,13 +141,13 @@ class UserMatchInterest(models.Model):
         unique_together = ('project', 'user')
 
     def __str__(self):
-        return f"{self.project.name} {'liked' if self.liked else 'disliked'} {self.user.username}"
+        return f"{self.project.name} {'dio me gusta a' if self.liked else 'dio no me gusta a'} {self.user.username}"
 
 
 class ProjectMatch(models.Model):
     '''
-    Created only when both sides like each other.
-    Indicates a confirmed match.
+    Se crea sólo cuando ambos (usuario-proyecto) se dieron me gusta.
+    Indica un match confirmado.
     '''
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
@@ -154,7 +157,7 @@ class ProjectMatch(models.Model):
         unique_together = ('user', 'project')
 
     def __str__(self):
-        return f"{self.user.username} matched with {self.project.name}"
+        return f"{self.user.username} hizo match con {self.project.name}"
 
 class Notification(models.Model):
     recipient = models.ForeignKey(

@@ -70,13 +70,14 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ['embedding']
     
     def validate_students(self, users):
+        # Los proyectos solo pueden tener hasta 3 estudiantes
         if len(users) > 3:
-            raise serializers.ValidationError('A project cannot have more than 4 students.')
+            raise serializers.ValidationError('Un proyecto no puede tener más de 3 estudiantes.')
 
         # Revisamos que cada usuario no haya sido asignado a otro proyecto
         for user in users:
             if user.projects.exclude(id=self.instance.id if self.instance else None).exists():
-                raise serializers.ValidationError(f'Student {user.username} is already assigned to another project.')
+                raise serializers.ValidationError(f'El estudiante {user.username} ya está asignado a otro proyecto.')
         return users
     
     def update(self, instance, validated_data):
@@ -101,6 +102,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         user = request.user
         if not user or not user.is_authenticated:
             return False
+        # Regresamos si hubo un like entre usuario y proyecto
         return ProjectMatchInterest.objects.filter(
             user=user,
             project=obj,
