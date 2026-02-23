@@ -23,6 +23,9 @@ from .models import Project, User, ProjectMatchInterest, UserMatchInterest, Proj
 from .serializers import ProjectSerializer, ProjectMatchInterestSerializer, UserMatchInterestSerializer, NotificationSerializer
 
 class IsProjectCreatorOrMentor(permissions.BasePermission):
+    '''
+    Clase auxiliar para conocer si un usuario es el creador o asesor de un proyecto.
+    '''
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
@@ -30,19 +33,22 @@ class IsProjectCreatorOrMentor(permissions.BasePermission):
 
         return obj.creator == request.user or obj.mentor == request.user
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            return True
-        return obj.author == request.user
-
 class IsAuthenticatedOrReadOnly(BasePermission):
+    '''
+    Clase auxiliar para validar si el usuario está autenticado.
+    '''
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
             return True
         return request.user and request.user.is_authenticated
 
 class CommentViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para comentarios.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -53,18 +59,23 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, project_id=self.kwargs['project_pk'])
 
 class CreateUserView(generics.CreateAPIView):
+    '''
+    Clase que representa una vista para crear un usuario.
+
+    Sólo incluye el verbo Http POST, ya que no queremos el resto de verbos
+    durante la creación de un usuario por motivos de seguridad.
+    '''
     queryset = User.objects.all() # Lista de todos los usuarios
     serializer_class = UserSerializer # Indicamos los datos necesarios para un usuario con la clase serializadora
     permission_classes = [AllowAny] # Todos pueden crear un usuario
 
-class UserListView(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['interests', 'abilities', 'status']
-
 class ProjectViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para proyectos.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     queryset = Project.objects.all().prefetch_related('categories', 'required_abilities', 'students')
     serializer_class = ProjectSerializer
 
@@ -102,7 +113,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        project = serializer.save(creator=self.request.user)
+        project = serializer.save(creator=self.request.user) # Creamos el proyecto en la base de datos
         user = self.request.user
 
         if user.is_authenticated:
@@ -117,7 +128,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if request.user.id != project.creator_id and request.user.id != (project.mentor_id or None):
             return Response(
-                {'detail': 'You do not have permission to update this project.'},
+                {'detail': 'No cuentas con el permiso para actualizar este proyecto.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -125,22 +136,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='assign-user')
     def assign_user(self, request, pk=None):
+        '''
+        endpoint específico para asignar un usuario a un proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico al cual
+        se quiere agregar el usuario.
+        '''
         project = self.get_object()
         user_id = request.data.get('user_id')
 
         if not user_id:
-            return Response({'error': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'se requiere user_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(id=user_id, user_type=User.STUDENT)
         except User.DoesNotExist:
-            return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'No se encontró el usuario.'}, status=status.HTTP_404_NOT_FOUND)
 
         if user.projects_as_student.exclude(id=project.id).exists():
-            return Response({'error': 'User is already assigned to another project.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El usuario ya está asignado a otro proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if project.students.count() >= 3:
-            return Response({'error': 'Project already has 3 students.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El proyecto ya cuenta con 3 estudiantes.'}, status=status.HTTP_400_BAD_REQUEST)
 
         project.students.add(user)
         if project.students.count() == 3:
@@ -151,31 +168,37 @@ class ProjectViewSet(viewsets.ModelViewSet):
             user.status = "enrolled"
             user.save(update_fields=["status"])
 
-        return Response({'message': f'User {user.username} assigned to project {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Usuario {user.username} asignado al proyecto {project.name}.'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='unassign-user')
     def unassign_user(self, request, pk=None):
+        '''
+        endpoint específico para remover un usuario de un proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico del cual
+        se quiere remover el usuario.
+        '''
         project = self.get_object()
         user_id = request.data.get('user_id')
 
         if not user_id:
-            return Response({'error': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'se requiere user_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if request.user.id != project.creator_id and request.user.id != (project.mentor_id or None):
-            return Response({'error': 'Only the project owner or mentor can remove students.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'Sólo el creador del proyecto o el asesor pueden remover estudiantes.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             user = User.objects.get(id=user_id, user_type=User.STUDENT)
         except User.DoesNotExist:
-            return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'No se encontró el estudiante.'}, status=status.HTTP_404_NOT_FOUND)
         
         if user.id == project.creator_id:
-            return Response({'error': 'Cannot remove the project creator.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'No se puede remover al creador del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
         if project.mentor_id and user.id == project.mentor_id:
-            return Response({'error': 'Cannot remove the project mentor.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'No se puede remover al asesor del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not project.students.filter(id=user.id).exists():
-            return Response({'error': 'User is not assigned to this project.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El usuario no está asignado a este proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
         project.students.remove(user)
         if project.students.count() < 3 and project.status == 'team_complete':
@@ -186,56 +209,77 @@ class ProjectViewSet(viewsets.ModelViewSet):
             user.status = "available"
             user.save(update_fields=["status"])
 
-        return Response({'message': f'User {user.username} removed from project {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Usuario {user.username} removido del proyecto {project.name}.'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='assign-mentor')
     def assign_mentor(self, request, pk=None):
+        '''
+        endpoint específico para asignar un asesor a un proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico al cual
+        se quiere asignar el asesor.
+        '''
         project = self.get_object()
         mentor_id = request.data.get('mentor_id')
 
         if not mentor_id:
-            return Response({'error': 'mentor_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Se requiere mentor_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if project.mentor is not None:
             return Response(
-                {'error': 'This project already has a mentor assigned.'},
+                {'error': 'Este proyecto ya cuenta con un asesor.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
             mentor = User.objects.get(id=mentor_id, user_type=User.MENTOR)
         except User.DoesNotExist:
-            return Response({'error': 'Mentor not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Asesor no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         project.mentor = mentor
         project.save()
 
         return Response(
-            {'message': f'Mentor {mentor.username} assigned to project {project.name}.'},
+            {'message': f'Asesor {mentor.username} asignado al proyecto {project.name}.'},
             status=status.HTTP_200_OK
         )
 
     @action(detail=True, methods=['post'], url_path='unassign-mentor')
     def unassign_mentor(self, request, pk=None):
+        '''
+        endpoint específico para remover un asesor de un proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico del cual
+        se quiere remover el asesor.
+        '''
         project = self.get_object()
 
         if not project.mentor:
-            return Response({'error': 'This project has no assigned mentor.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Este proyecto no tiene un asesor.'}, status=status.HTTP_400_BAD_REQUEST)
 
         removed_mentor = project.mentor
         project.mentor = None
         project.save()
 
-        return Response({'message': f'Mentor {removed_mentor.username} unassigned from project {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Asesor {removed_mentor.username} removido del proyecto {project.name}.'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'], url_path='matched-users')
     def matched_users(self, request, pk=None):
+        '''
+        endpoint específico para obtener los usuarios que hicieron match con el proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico del cual
+        se quieren obtener usuarios con un match.
+        '''
         project = self.get_object()
+
+        # Usuarios a los que les gusta el proyecto
         student_likes = ProjectMatchInterest.objects.filter(
             project=project,
             liked=True
         ).values_list('user_id', flat=True)
 
+        # Likes mutuos. Usuarios a los que se les dió like desde el proyecto y que son parte de la lista anterior
         mutual_students = UserMatchInterest.objects.filter(
             project=project,
             liked=True,
@@ -243,6 +287,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         ).select_related('user')
 
         users_data = []
+        # Para cada usuario con match se incluyen sus datos y si ya es parte de este proyecto o de otro
         for umi in mutual_students:
             user = umi.user
             assigned = False
@@ -265,14 +310,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='matched-mentors')
     def matched_mentors(self, request, pk=None):
+        '''
+        endpoint específico para obtener los asesores que hicieron match con el proyecto.
+
+        detail=True significa que la url debe incluir el proyecto especifico del cual
+        se quieren obtener asesores con un match.
+        '''
         project = self.get_object()
 
+        # Asesores a los que les gusta el proyecto
         mentor_likes = ProjectMatchInterest.objects.filter(
             project=project,
             liked=True,
             user__user_type=User.MENTOR
         ).values_list('user_id', flat=True)
 
+        # Likes mutuos. Asesores a los que se les dió like desde el proyecto y que son parte de la lista anterior
         mutual_mentors = UserMatchInterest.objects.filter(
             project=project,
             liked=True,
@@ -298,24 +351,41 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(mentors_data, status=status.HTTP_200_OK)
     
 class InterestViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para intereses.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     queryset = Interest.objects.all()
     serializer_class = InterestSerializer
-    permission_clases = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    # Permite buscar intereses por nombre
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
         'name': ['icontains'],
     }
 
 class AbilityViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para habilidades.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     queryset = Ability.objects.all()
     serializer_class = AbilitySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    # Permite buscar habilidades por nombre
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
         'name': ['icontains'],
     }
 
 class UserMeView(APIView):
+    '''
+    Clase que representa la sesión del usuario autenticado. Se utiliza para el perfil del usuario.
+    '''
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -330,63 +400,33 @@ class UserMeView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CategoryViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para habilidades.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
 
 class MatchViewSet(viewsets.ViewSet):
+    '''
+    Clase que representa el comportamiento de emparejamiento.
+    No está asociada a un modelo en específico.
+
+    ViewSet permite crear rutas para endpoints e implementar acciones con @action.
+    '''
     permission_classes = [IsAuthenticated]
-
-    @action(detail=False, methods=['get'], url_path='suggested-projects')
-    def suggested_projects(self, request):
-        user = request.user
-        if not user.is_student():
-            return Response({'detail': 'Only students can view suggested projects.'}, status=403)
-
-        liked = ProjectMatchInterest.objects.filter(user=user).values_list('project_id', flat=True)
-        suggested = Project.objects.exclude(id__in=liked)
-
-        serializer = ProjectSerializer(suggested, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], url_path='suggested-users')
-    def suggested_users(self, request):
-        user = request.user
-        project_id = request.query_params.get('project_id')
-
-        if not user.is_mentor() and not user.created_projects.exists():
-            return Response({'detail': 'Only mentors or creators can view suggested users.'}, status=403)
-
-        if not project_id:
-            return Response({'detail': 'Missing project_id parameter.'}, status=400)
-
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            return Response({'detail': 'Project not found.'}, status=404)
-
-        if project.creator != user and project.mentor != user:
-            return Response({'detail': 'You do not have access to this project.'}, status=403)
-
-        liked_or_disliked_user_ids = UserMatchInterest.objects.filter(
-            project=project
-        ).values_list('user_id', flat=True)
-
-        matched_user_ids = ProjectMatch.objects.filter(
-            project=project
-        ).values_list('user_id', flat=True)
-
-        suggested = User.objects.filter(user_type='student') \
-            .exclude(id__in=liked_or_disliked_user_ids) \
-            .exclude(id__in=matched_user_ids) \
-            .exclude(id=user.id)
-
-        serializer = UserSerializer(suggested, many=True)
-        return Response(serializer.data)
-
 
     @action(detail=False, methods=['post'], url_path='like-project')
     def like_project(self, request):
+        '''
+        endpoint específico para indicar que a un usuario le da me gusta a un proyecto.
+
+        detail=False significa que la url no debe incluir el proyecto especifico
+        al cual se le da me gusta.
+        '''
         serializer = ProjectMatchInterestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -394,17 +434,15 @@ class MatchViewSet(viewsets.ViewSet):
         liked = serializer.validated_data['liked']
         user = request.user
 
-        print("LIKING PROJECT:", project.id, "BY USER:", user.id)
-
         if project.creator_id == user.id:
             return Response(
-                {"detail": "Owners cannot like their own projects."},
+                {"detail": "Los creadores no pueden dar like a sus proyectos."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if user.user_type == "student" and user.projects_as_student.exists():
             return Response(
-                {"detail": "Students already enrolled in a project cannot like others."},
+                {"detail": "Estudiantes registrados en un proyecto no pueden darle me gusta a otros proyectos."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -417,6 +455,7 @@ class MatchViewSet(viewsets.ViewSet):
         matched = False
         match_with = None
 
+        # Si el usuario le dio me gusta al proyecto
         if liked:
             reciprocal = UserMatchInterest.objects.filter(
                 project=project,
@@ -424,14 +463,15 @@ class MatchViewSet(viewsets.ViewSet):
                 liked=True
             ).exists()
 
-            print("RECIPROCAL?", reciprocal)
-
+            # Si desde el proyecto se le había dado me gusta al usuario
             if reciprocal:
                 ProjectMatch.objects.get_or_create(user=user, project=project)
                 matched = True
 
+                # Obtenemos el asesor o creador a quien se le dará la notificación
                 recipient = project.mentor or project.creator
                 if recipient:
+                    # Se crea la notificación
                     Notification.objects.create(
                         recipient=recipient,
                         message=f"¡Hiciste match con '{user.username}' en el proyecto '{project.name}'!",
@@ -439,6 +479,7 @@ class MatchViewSet(viewsets.ViewSet):
                     )
                     match_with = recipient.username
 
+                # Se crea la notificación para el usuario
                 Notification.objects.create(
                     recipient=user,
                     message=f"¡Hiciste match con el proyecto '{project.name}'!",
@@ -455,15 +496,18 @@ class MatchViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], url_path='dislike-project')
     def dislike_project(self, request):
+        '''
+        endpoint específico para indicar que a un usuario le da no me gusta a un proyecto.
+
+        detail=False significa que la url no debe incluir el proyecto especifico
+        al cual se le da no me gusta.
+        '''
         serializer = ProjectMatchInterestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        print('SERIALIZER DATA:', serializer.validated_data)
 
         project = serializer.validated_data['project']
         liked = serializer.validated_data['liked']
         user = request.user
-        print("Current user:", user, "| Authenticated:", user.is_authenticated)
-        print(f'Disliked project: {project} - {liked} - {user}')
 
         ProjectMatchInterest.objects.update_or_create(
             user=user,
@@ -471,10 +515,16 @@ class MatchViewSet(viewsets.ViewSet):
             defaults={'liked': liked}
         )
 
-        return Response({'status': 'project disliked'})
+        return Response({'status': 'Se dió no me gusta al proyecto'})
 
-    @action(detail=False, methods=['post'], url_path='like-user', permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], url_path='like-user')
     def like_user(self, request):
+        '''
+        endpoint específico para indicar que desde un proyecto se le da me gusta a un usuario.
+
+        detail=False significa que la url no debe incluir el usuario especifico
+        al cual se le da me gusta.
+        '''
         serializer = UserMatchInterestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -485,16 +535,16 @@ class MatchViewSet(viewsets.ViewSet):
 
 
         if not project:
-            return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'No se encontró el proyecto.'}, status=status.HTTP_404_NOT_FOUND)
 
         if acting_user != project.creator and acting_user != project.mentor:
-            return Response({'detail': 'You do not have permission for this project.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'No cuentas con permisos para este proyecto.'}, status=status.HTTP_403_FORBIDDEN)
 
         if user_to_like == acting_user:
-            return Response({'detail': 'You cannot like yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'No puedes dar me gusta a ti mismo.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if project.students.filter(id=user_to_like.id).exists() or project.mentor_id == user_to_like.id:
-            return Response({'detail': 'User is already part of this project.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'El usuario ya es parte de este proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
         interest, created = UserMatchInterest.objects.update_or_create(
             project=project,
@@ -505,6 +555,7 @@ class MatchViewSet(viewsets.ViewSet):
         matched = False
         match_with = None
 
+        # Si desde el proyecto se le dió me gusta al usuario
         if liked:
             reciprocal = ProjectMatchInterest.objects.filter(
                 user=user_to_like,
@@ -512,19 +563,19 @@ class MatchViewSet(viewsets.ViewSet):
                 liked=True
             ).exists()
 
-            print("RECIPROCAL?", reciprocal)
-
             if reciprocal:
                 ProjectMatch.objects.get_or_create(user=user_to_like, project=project)
                 matched = True
                 match_with = user_to_like.username
 
+                # Se crea la notificación para el usuario
                 Notification.objects.create(
                     recipient=user_to_like,
                     message=f"¡Hiciste match con el proyecto '{project.name}'!",
                     related_project=project
                 )
 
+                # Se crea la notificación para el creador o asesor del proyecto
                 Notification.objects.create(
                     recipient=acting_user,
                     message=f"¡Hiciste match con '{user_to_like.username}' en el proyecto '{project.name}'!",
@@ -541,6 +592,12 @@ class MatchViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], url_path='dislike-user')
     def dislike_user(self, request):
+        '''
+        endpoint específico para indicar que desde un proyecto se le da no me gusta a un usuario.
+
+        detail=False significa que la url no debe incluir el usuario especifico
+        al cual se le da no me gusta.
+        '''
         serializer = UserMatchInterestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -549,12 +606,12 @@ class MatchViewSet(viewsets.ViewSet):
         liked = serializer.validated_data['liked']
 
         if not project:
-            return Response({'detail': 'Project not found.'}, status=404)
+            return Response({'detail': 'Proyecto no encontrado.'}, status=404)
 
         acting_user = request.user
 
         if acting_user != project.creator and acting_user != project.mentor:
-            return Response({'detail': 'You do not have permission for this project.'}, status=403)
+            return Response({'detail': 'No cuentas con permisos para este proyecto.'}, status=403)
 
         interest, created = UserMatchInterest.objects.update_or_create(
             project=project,
@@ -562,46 +619,62 @@ class MatchViewSet(viewsets.ViewSet):
             defaults={'liked': liked}
         )
 
-        return Response({'status': 'user disliked'})
+        return Response({'status': 'Se dió no me gusta al proyecto'})
     
     @action(detail=False, methods=['get'], url_path='ai-suggested-users')
     def ai_suggested_users(self, request):
+        '''
+        endpoint específico para obtener sugerencias de usuarios con inteligencia artificial.
+
+        detail=False significa que la url no debe incluir el proyecto especifico
+        al cual se le sugieren usuarios.
+        '''
         user = request.user
         project_id = request.query_params.get('project_id')
         user_type = request.query_params.get('user_type', 'student')
 
         if not project_id:
-            return Response({'detail': 'Missing project_id parameter.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Falta el parámetro project_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         project = get_object_or_404(Project, id=project_id)
 
         if project.creator != user and project.mentor != user:
-            return Response({'detail': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         if user_type == "mentor" and project.mentor_id:
             return Response([], status=status.HTTP_200_OK)
 
         if user_type == "student":
+            # Obtenemos estudiantes afines al proyecto
             users = get_similar_students_for_project(project)
         elif user_type == "mentor":
+            # Obtenemos asesores afines al proyecto
             users = get_similar_mentors_for_project(project)
         else:
-            return Response({'detail': 'Invalid user_type.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'user_type no válido.'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(UserSerializer(users, many=True).data)
 
     @action(detail=False, methods=['get'], url_path='ai-suggested-projects')
     def ai_suggested_projects(self, request):
+        '''
+        endpoint específico para obtener sugerencias de proyectos con inteligencia artificial.
+
+        detail=False significa que la url no debe incluir el usuario especifico
+        al cual se le sugieren proyectos.
+        '''
         user = request.user
 
         if not (user.is_student() or user.is_mentor()):
             return Response(
-                {'detail': 'Only students and mentors can get project suggestions.'},
+                {'detail': 'Sólo estudiantes y asesores pueden recibir sugerencias.'},
                 status=403
             )
 
+        # Obtenemos proyectos afines al usuario
         projects = get_similar_projects_for_user(user)
 
+        # Si el usuario es asesor, se le muestran proyectos sin asesor
         if user.is_mentor():
             projects = [p for p in projects if p.mentor is None]
 
@@ -612,10 +685,13 @@ class MatchViewSet(viewsets.ViewSet):
         )
         return Response(serializer.data)
 
-
-
-
 class NotificationViewSet(viewsets.ModelViewSet):
+    '''
+    Clase que agrupa la lógica de la API para notificaciones.
+
+    Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
+    por Django REST Framework.
+    '''
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
 
@@ -624,10 +700,16 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None):
+        '''
+        endpoint específico para marcar una notificación como leída.
+
+        detail=True significa que la url debe incluir la notificación especifica
+        que será marcada como leída.
+        '''
         try:
             notification = self.get_object()
             notification.is_read = True
             notification.save()
-            return Response({'status': 'marked as read'})
+            return Response({'status': 'marcada como leída'})
         except:
-            return Response({'error': 'Notification not found'}, status=404)
+            return Response({'error': 'Notificación no encontrada'}, status=404)
