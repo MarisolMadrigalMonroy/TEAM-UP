@@ -3,6 +3,7 @@ from django.urls import path, include
 from api.views import CreateUserView, UserMeView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+# urls para endpoints de api
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/user/register/', CreateUserView.as_view(), name='register'),
