@@ -4,31 +4,41 @@ import { useNavigate } from 'react-router-dom'
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants'
 import '../styles/Form.css'
 import LoadingIndicator from './LoadingIndicator'
-import { getCurrentUser } from '../auth'
 import { fetchUserProfile } from '../auth'
 
+/*
+* Componente para formulario de registro e inicio de sesión
+* Props:
+*   route: ruta de la API para tokens de autenticación
+*   method: método Http para le petición
+*   setUser: función para actualizar el usuaio. Propiedad del componente padre
+*/
 function Form({ route, method, setUser }) {
-    const [username, setUsername] = useState('')
+    const [nombreUsuario, setNombreUsuario] = useState('')
     const [password, setPassword] = useState('')
-    const [userType, setUserType] = useState('')
-    const [status, setStatus] = useState('available')
-    const [loading, setLoading] = useState(false)
+    const [tipoUsuario, setTipoUsuario] = useState('')
+    const [estado, setEstado] = useState('available')
+    const [cargando, setCargando] = useState(false)
+    // useNavigate permite cambiar rutas de manera programática
     const navigate = useNavigate()
 
     const name = method === 'login' ? 'Iniciar Sesión' : 'Registro'
 
     const handleSubmit = async (e) => {
-        setLoading(true)
+        setCargando(true)
+        // preventDefault evita el comportamiento por defecto al enviar el formulario.
+        // En vez de recargar la página, vamos a controlar lo que sucede al enviar
+        // el formulario.
         e.preventDefault()
 
         try {
             const payload = method === 'login'
-                ? { username, password }
+                ? { username: nombreUsuario, password }
                 : {
-                      username,
+                      username: nombreUsuario,
                       password,
-                      user_type: userType,
-                      status,
+                      user_type: tipoUsuario,
+                      status: estado,
                       interests: [],
                       abilities: [],
                   }
@@ -40,16 +50,15 @@ function Form({ route, method, setUser }) {
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh)
                 const profile = await fetchUserProfile();
                 setUser?.(profile);
-                console.log('usu: ', getCurrentUser())
                 navigate('/')
             } else {
                 navigate('/login')
             }
         } catch (error) {
-            alert('An error occurred during submission')
+            alert('Ocurrió un error durante el envío')
             console.error(error.response?.data || error)
         } finally {
-            setLoading(false)
+            setCargando(false)
         }
     }
 
@@ -60,8 +69,8 @@ function Form({ route, method, setUser }) {
             <input
                 className='form-input'
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={nombreUsuario}
+                onChange={(e) => setNombreUsuario(e.target.value)}
                 placeholder='Nombre de Usuario'
                 required
             />
@@ -74,12 +83,13 @@ function Form({ route, method, setUser }) {
                 required
             />
 
+            {/* Desplegar los siguientes componentes si el método es registrar usuario */}
             {method === 'register' && (
                 <>
                     <select
                         className='form-input'
-                        value={userType}
-                        onChange={(e) => setUserType(e.target.value)}
+                        value={tipoUsuario}
+                        onChange={(e) => setTipoUsuario(e.target.value)}
                         required
                     >
                         <option value="">Tipo de Usuario</option>
@@ -89,8 +99,8 @@ function Form({ route, method, setUser }) {
 
                     <select
                         className='form-input'
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
+                        value={estado}
+                        onChange={(e) => setEstado(e.target.value)}
                     >
                         <option value="available">Buscando Proyecto</option>
                         <option value="enrolled">En un Proyecto</option>
@@ -99,7 +109,7 @@ function Form({ route, method, setUser }) {
                 </>
             )}
 
-            {loading && <LoadingIndicator />}
+            {cargando && <LoadingIndicator />}
 
             <button className='form-button' type='submit'>
                 {name}
