@@ -8,14 +8,14 @@ import EditPrfile from './pages/EditProfile'
 import ProtectedRoute from './components/ProtectedRoute'
 import ProjectDetail from './components/ProjectDetail'
 import NavigationBar from './components/NavBar'
-import { getCurrentUser } from './auth'
+import { obtenerUsuarioActual } from './auth'
 import EditProfile from './pages/EditProfile'
 import EditProject from './pages/EditProject'
 import CreateProject from './pages/CreateProject'
 import React, { useEffect, useState } from 'react'
 import Form from './components/Form'
 import Logout from './components/Logout'
-import { fetchUserProfile } from './auth';
+import { obtenerPerfilUsuario } from './auth';
 import Projects from './pages/Projects';
 import MatchPage from './pages/MatchPage';
 import NotificationsPage from './pages/NotificationsPage'
@@ -25,11 +25,11 @@ import MatchedUsers from "./pages/MatchedUsers";
 import MatchedMentors from "./pages/MatchedMentors";
 
 function App() {
-  const [user, setUser] = useState(getCurrentUser());
+  const [user, setUser] = useState(obtenerUsuarioActual());
 
   useEffect(() => {
     async function loadUser() {
-      const userProfile = await fetchUserProfile();
+      const userProfile = await obtenerPerfilUsuario();
       setUser(userProfile);
     }
 

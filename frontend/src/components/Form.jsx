@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants'
 import '../styles/Form.css'
 import LoadingIndicator from './LoadingIndicator'
-import { fetchUserProfile } from '../auth'
+import { obtenerPerfilUsuario } from '../auth'
 
 /*
 * Componente para formulario de registro e inicio de sesión
@@ -22,7 +22,7 @@ function Form({ route, method, setUser }) {
     // useNavigate permite cambiar rutas de manera programática
     const navigate = useNavigate()
 
-    const name = method === 'login' ? 'Iniciar Sesión' : 'Registro'
+    const titulo = method === 'login' ? 'Iniciar Sesión' : 'Registro'
 
     const handleSubmit = async (e) => {
         setCargando(true)
@@ -48,8 +48,8 @@ function Form({ route, method, setUser }) {
             if (method === 'login') {
                 localStorage.setItem(ACCESS_TOKEN, res.data.access)
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh)
-                const profile = await fetchUserProfile();
-                setUser?.(profile);
+                const perfil = await obtenerPerfilUsuario();
+                setUser?.(perfil);
                 navigate('/')
             } else {
                 navigate('/login')
@@ -64,7 +64,7 @@ function Form({ route, method, setUser }) {
 
     return (
         <form onSubmit={handleSubmit} className='form-container'>
-            <h1>{name}</h1>
+            <h1>{titulo}</h1>
 
             <input
                 className='form-input'
@@ -112,7 +112,7 @@ function Form({ route, method, setUser }) {
             {cargando && <LoadingIndicator />}
 
             <button className='form-button' type='submit'>
-                {name}
+                {titulo}
             </button>
         </form>
     );

@@ -2,7 +2,7 @@ import { jwtDecode } from 'jwt-decode';
 import { ACCESS_TOKEN } from './constants';
 import api from './api';
 
-export const getCurrentUser = () => {
+export const obtenerUsuarioActual = () => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) return null;
 
@@ -15,10 +15,10 @@ export const getCurrentUser = () => {
 }
 
 export const isAuthenticated = () => {
-    return !!getCurrentUser();
+    return !!obtenerUsuarioActual();
 }
 
-export const fetchUserProfile = async () => {
+export const obtenerPerfilUsuario = async () => {
     try {
         const res = await api.get('/api/user/me/');
         return res.data;

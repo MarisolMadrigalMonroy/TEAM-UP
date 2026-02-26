@@ -6,8 +6,8 @@ import {
 } from 'react-bootstrap';
 import { FaUserCircle } from 'react-icons/fa';
 import api from '../api';
-    import { getCurrentUser } from '../auth';
-import { fetchUserProfile } from '../auth';
+    import { obtenerUsuarioActual } from '../auth';
+import { obtenerPerfilUsuario } from '../auth';
 import { toast } from 'react-toastify';
 
 function CommentList({ comments }) {
@@ -45,7 +45,7 @@ function CommentList({ comments }) {
 }
 
 function ProjectDetail() {
-    const user = getCurrentUser();
+    const user = obtenerUsuarioActual();
     const isLoggedIn = !!user;
     const { id } = useParams();
     const [project, setProject] = useState(null);
@@ -60,7 +60,7 @@ function ProjectDetail() {
         try {
             const [projRes, userRes] = await Promise.all([
                 api.get(`/api/projects/${id}/`),
-                fetchUserProfile()
+                obtenerPerfilUsuario()
             ]);
             setProject(projRes.data);
             setCurrentUser(userRes);

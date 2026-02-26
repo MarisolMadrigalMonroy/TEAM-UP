@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { fetchUserProfile } from '../auth';
+import { obtenerPerfilUsuario } from '../auth';
 
 function CreateProject({ setUser }) {
     const [name, setName] = useState('');
@@ -56,7 +56,7 @@ function CreateProject({ setUser }) {
                 categories: selectedCategories,
                 required_abilities: selectedAbilities
             });
-            const updatedUser = await fetchUserProfile();
+            const updatedUser = await obtenerPerfilUsuario();
             setUser(updatedUser);
             navigate(`/projects/${res.data.id}`);
         } catch (err) {

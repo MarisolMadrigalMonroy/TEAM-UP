@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, Button, Spinner, Container, Row, Col, Form, Alert } from 'react-bootstrap';
 import api from '../api';
-import { getCurrentUser } from '../auth';
+import { obtenerUsuarioActual } from '../auth';
 import { toast } from 'react-toastify';
 
 function SuggestedUsers({ userType = 'student' }) {
@@ -9,7 +9,7 @@ function SuggestedUsers({ userType = 'student' }) {
   const [loading, setLoading] = useState(true);
   const [activeProjects, setActiveProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const currentUser = getCurrentUser();
+  const currentUser = obtenerUsuarioActual();
 
   useEffect(() => {
     const fetchUserProjects = async () => {
