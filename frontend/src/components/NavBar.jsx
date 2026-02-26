@@ -1,13 +1,10 @@
 // components/NavBar.js
 import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import api from '../api';
 import NotificationsDropdown from './NotificationsDropdown';
 
 function NavigationBar({ isAuthenticated, user, setUser, onLogout }) {
     const navigate = useNavigate();
-    console.log('usua: ', user)
 
     const handleLogout = () => {
         if (onLogout) {
@@ -25,17 +22,20 @@ function NavigationBar({ isAuthenticated, user, setUser, onLogout }) {
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/projects">Proyectos</Nav.Link>
+                        {/* Si el usuario está autenticado y es asesor o no tiene proyecto, puede crear un proyecto */}
                         {isAuthenticated && (
                             (user?.user_type === 'mentor' || (user?.user_type === 'student' && user?.projects?.length === 0)) && (
                                 <Nav.Link as={Link} to="/projects/create">Crea Un Proyecto</Nav.Link>
                             )
                         )}
+                        {/* Si está autenticado puede buscar un match */}
                         {isAuthenticated && (
                             <Nav.Link as={Link} to="/match">Encuentra Un Match</Nav.Link>
                         )}
 
                     </Nav>
                     <Nav>
+                        {/* Si no está autenticado puede iniciar sesión o registrarse, en caso contrario puede ver su perfil o salir */}
                         {!isAuthenticated ? (
                             <>
                                 <Nav.Link as={Link} to="/login">Inicia Sesión</Nav.Link>
