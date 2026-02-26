@@ -7,31 +7,31 @@ import api from '../api';
 
 dayjs.extend(relativeTime);
 
-function ProjectCarousel({ title, projects }) {
+function CarruselProyectos({ titulo, proyectos }) {
   const navigate = useNavigate();
 
-  console.error("registered projects: " + projects.length)
+  console.error("proyectos registrados: " + proyectos.length)
 
-  if (!projects.length) return null;
+  if (!proyectos.length) return null;
 
   return (
     <section className="mb-5">
-      <h2 className="mb-4">{title}</h2>
+      <h2 className="mb-4">{titulo}</h2>
       <Carousel indicators={true} controls={true} interval={3000}>
-        {projects.map((project) => (
-          <Carousel.Item key={project.id}>
+        {proyectos.map((proyecto) => (
+          <Carousel.Item key={proyecto.id}>
             <div className="p-5 bg-light rounded-4 shadow-sm border text-center">
-              <h3 className="fw-bold">{project.name}</h3>
-              <p className="text-muted">{project.description.slice(0, 200)}...</p>
+              <h3 className="fw-bold">{proyecto.name}</h3>
+              <p className="text-muted">{proyecto.description.slice(0, 200)}...</p>
               <div className="mb-3">
-                {dayjs().diff(dayjs(project.created_at), 'day') <= 7 && (
+                {dayjs().diff(dayjs(proyecto.created_at), 'day') <= 7 && (
                   <Badge bg="success" className="me-2">Nuevo</Badge>
                 )}
-                {project.students?.length == 2 && (
+                {proyecto.students?.length == 2 && (
                   <Badge bg="warning" text="dark">Popular</Badge>
                 )}
               </div>
-              <Button variant="primary" onClick={() => navigate(`/projects/${project.id}`)}>
+              <Button variant="primary" onClick={() => navigate(`/projects/${proyecto.id}`)}>
                 Ver Proyecto
               </Button>
             </div>
@@ -43,26 +43,27 @@ function ProjectCarousel({ title, projects }) {
 }
 
 function HomeShowcase() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [proyectos, setProyectos] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
 
+  // useEffect ejecuta cambios después que el componente se despliega
   useEffect(() => {
-    const fetchProjects = async () => {
+    const obtenerProyectos = async () => {
       try {
         const res = await api.get('/api/projects/');
-        setProjects(res.data);
+        setProyectos(res.data);
       } catch (err) {
-        console.error('Error fetching projects:', err);
+        console.error('Error obteniendo proyectos:', err);
       } finally {
-        setLoading(false);
+        setCargando(false);
       }
     };
 
-    fetchProjects();
-  }, []);
+    obtenerProyectos();
+  }, []); // [] es una lista vacía de dependencias. La función se ejecuta solo una vez después del despliegue
 
-  if (loading) {
+  if (cargando) {
     return (
       <div className="text-center my-5">
         <Spinner animation="border" />
@@ -70,19 +71,22 @@ function HomeShowcase() {
     );
   }
 
-  const projectList = Array.isArray(projects) ? projects : projects?.results || [];
-  const newProjects = projectList
+  const listaProyectos = Array.isArray(proyectos) ? proyectos : proyectos?.results || [];
+  // proyectos creados en los últimos 7 días
+  const proyectosNuevos = listaProyectos
     .filter(p => {
       const diff = dayjs().diff(dayjs(p.created_at), 'day');
       return diff >= 0 && diff <= 7;
     })
     .slice(0, 3);
 
-  const popularProjects = projectList
+  // proyectos con 2 estudiantes
+  const proyectosPopulares = listaProyectos
     .filter(p => p.students?.length == 2)
     .slice(0, 3);
 
-  const successStories = projectList
+  // proyectos con equipo completo o proyectos completados
+  const historiasExito = listaProyectos
     .filter(p => ['team_complete', 'completed'].includes(p.status))
     .slice(0, 3);
 
@@ -90,9 +94,9 @@ function HomeShowcase() {
     <Container className="py-5">
       <h1 className="text-center fw-bold mb-5">Descubre Proyectos</h1>
 
-      <ProjectCarousel title="Proyectos Nuevos" projects={newProjects} />
-      <ProjectCarousel title="Proyectos Populares" projects={popularProjects} />
-      <ProjectCarousel title="Historias de Éxito" projects={successStories} />
+      <CarruselProyectos titulo="Proyectos Nuevos" proyectos={proyectosNuevos} />
+      <CarruselProyectos titulo="Proyectos Populares" proyectos={proyectosPopulares} />
+      <CarruselProyectos titulo="Historias de Éxito" proyectos={historiasExito} />
 
       <div className="text-center mt-5">
         <Button variant="outline-primary" size="lg" onClick={() => navigate('/projects')}>
