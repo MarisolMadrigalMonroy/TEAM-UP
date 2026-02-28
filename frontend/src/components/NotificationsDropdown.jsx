@@ -4,56 +4,63 @@ import { Dropdown, Badge, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 
+/*
+* Componente para notificaciones
+*/
 function NotificationsDropdown() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const obtenerNotificaciones = async () => {
       try {
         const res = await api.get('/api/notifications/?limit=5');
-        console.log('Notification API response:', res.data);
-        setNotifications(Array.isArray(res.data) ? res.data : []);
+
+        // Si la respuesta de la API tiene notificaciones las guardamos, sino usamos una lista vacía
+        setNotificaciones(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
-        console.error('Error fetching notifications:', err);
-        setNotifications([]);
+        console.error('Error obteniendo notificaciones:', err);
+        setNotificaciones([]);
       } finally {
-        setLoading(false);
+        setCargando(false);
       }
     };
 
-    fetchNotifications();
+    obtenerNotificaciones();
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const sinLeer = notificaciones.filter(n => !n.is_read).length;
 
-  const handleNotificationClick = async (notification) => {
-    if (!notification.is_read) {
+  const handleNotificationClick = async (notificacion) => {
+    /* Función para controlar clicks en notificaciones */
+    if (!notificacion.is_read) {
+      /* Si la notificación no ha sido leída, la intentamos marcar como leída */
       try {
-        await api.post(`/api/notifications/${notification.id}/mark-read/`);
-        setNotifications(prev =>
+        await api.post(`/api/notifications/${notificacion.id}/mark-read/`);
+        setNotificaciones(prev =>
           prev.map(n =>
-            n.id === notification.id ? { ...n, is_read: true } : n
+            n.id === notificacion.id ? { ...n, is_read: true } : n
           )
         );
       } catch (err) {
-        console.error('Error marking notification as read:', err);
+        console.error('Error marcando notificación como leída:', err);
       }
     }
 
-    if (notification.related_project) {
-      navigate(`/projects/${notification.related_project}`);
+    if (notificacion.related_project) {
+      /* Si la notificación tiene un proyecto asociado, navegamos hacia el proyecto */
+      navigate(`/projects/${notificacion.related_project}`);
     }
   };
 
   return (
     <Dropdown align="end">
       <Dropdown.Toggle variant="light" id="dropdown-notifications">
-        🔔
-        {unreadCount > 0 && (
+        🔔 {/* Indicamos la cantidad de notificaciones sin leer */}
+        {sinLeer > 0 && (
           <Badge bg="danger" className="ms-1">
-            {unreadCount}
+            {sinLeer}
           </Badge>
         )}
       </Dropdown.Toggle>
@@ -61,16 +68,17 @@ function NotificationsDropdown() {
       <Dropdown.Menu style={{ minWidth: '300px' }}>
         <Dropdown.Header>Notificaciones</Dropdown.Header>
 
-        {loading ? (
+        {cargando ? (
           <div className="text-center p-2">
             <Spinner animation="border" size="sm" /> Cargando...
           </div>
         ) : (
           <>
-            {unreadCount === 0 ? (
+            {/* Si no hay notificaciones lo indicamos textualmente, en otro caso desplegamos las notificaciones */}
+            {sinLeer === 0 ? (
               <Dropdown.ItemText>Sin notificaciones nuevas</Dropdown.ItemText>
             ) : (
-              notifications
+              notificaciones
                 .filter(n => !n.is_read)
                 .map((n) => (
                   <Dropdown.Item
