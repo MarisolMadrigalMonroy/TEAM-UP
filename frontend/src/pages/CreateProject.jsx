@@ -5,45 +5,48 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { obtenerPerfilUsuario } from '../auth';
 
+/*
+ * Componente para crear un proyeccto
+*/
 function CreateProject({ setUser }) {
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [categories, setCategories] = useState([]);
-    const [selectedCategories, setSelectedCategories] = useState([]);
-    const [abilities, setAbilities] = useState([]);
-    const [selectedAbilities, setSelectedAbilities] = useState([]);
+    const [nombre, setNombre] = useState('');
+    const [descripcion, setDescripcion] = useState('');
+    const [categorias, setCategorias] = useState([]);
+    const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
+    const [habilidades, setHabilidades] = useState([]);
+    const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const checkUserAndLoadData = async () => {
+        const validarUsuarioYCargarDatos = async () => {
             try {
-                const userRes = await api.get('/api/user/me/');
-                const user = userRes.data;
-                console.log(user)
+                const usuarioRes = await api.get('/api/user/me/');
+                const usuario = usuarioRes.data;
 
-                if (user.user_type === 'student' && user.projects.length > 0) {
-                    alert('You are already part of a project and cannot create a new one.');
+                // Si el usuario es estudiante y es parte de un proyecto
+                if (usuario.user_type === 'student' && usuario.projects.length > 0) {
+                    alert('Ya eres parte de un proyecto, no puedes crear uno nuevo.');
                     navigate('/');
                     return;
                 }
 
-                const [catRes, abRes] = await Promise.all([
+                const [catRes, habRes] = await Promise.all([
                     api.get('/api/categories/'),
                     api.get('/api/abilities/')
                 ]);
 
-                setCategories(catRes.data);
-                setAbilities(abRes.data);
-                setLoading(false);
+                setCategorias(catRes.data);
+                setHabilidades(habRes.data);
+                setCargando(false);
             } catch (err) {
-                console.error('Error checking user or loading options:', err);
-                setError('Could not verify access or load data.');
+                console.error('Error validando usuario o cargando opciones:', err);
+                setError('No se pudieron verificar accesos o cargar opciones.');
             }
         };
 
-        checkUserAndLoadData();
+        validarUsuarioYCargarDatos();
     }, [navigate]);
 
     const handleSubmit = async (e) => {
@@ -51,25 +54,26 @@ function CreateProject({ setUser }) {
 
         try {
             const res = await api.post('/api/projects/', {
-                name,
-                description,
-                categories: selectedCategories,
-                required_abilities: selectedAbilities
+                name: nombre,
+                description: descripcion,
+                categories: categoriasSeleccionadas,
+                required_abilities: habilidadesSeleccionadas
             });
-            const updatedUser = await obtenerPerfilUsuario();
-            setUser(updatedUser);
+            const usuarioActualizado = await obtenerPerfilUsuario();
+            setUser(usuarioActualizado);
             navigate(`/projects/${res.data.id}`);
         } catch (err) {
             console.error(err);
-            setError('Could not create project');
+            setError('No se pudo crear el proyecto.');
         }
     };
 
-    const handleCheckboxToggle = (id, selectedList, setSelectedList) => {
-        if (selectedList.includes(id)) {
-            setSelectedList(selectedList.filter(item => item !== id));
+    // Función para actualizar lista de opciones seleccionadas
+    const handleCheckboxToggle = (id, listaSeleccionada, setListaSeleccionada) => {
+        if (listaSeleccionada.includes(id)) {
+            setListaSeleccionada(listaSeleccionada.filter(item => item !== id));
         } else {
-            setSelectedList([...selectedList, id]);
+            setListaSeleccionada([...listaSeleccionada, id]);
         }
     };
 
@@ -82,8 +86,8 @@ function CreateProject({ setUser }) {
                     <Form.Label>Nombre del Proyecto</Form.Label>
                     <Form.Control
                         type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
+                        value={nombre}
+                        onChange={e => setNombre(e.target.value)}
                         required
                     />
                 </Form.Group>
@@ -93,8 +97,8 @@ function CreateProject({ setUser }) {
                     <Form.Control
                         as="textarea"
                         rows={5}
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
+                        value={descripcion}
+                        onChange={e => setDescripcion(e.target.value)}
                         required
                     />
                 </Form.Group>
@@ -102,13 +106,13 @@ function CreateProject({ setUser }) {
                 <Form.Group className="mb-3">
                     <Form.Label>Categorías</Form.Label>
                     <Row>
-                        {categories.map(cat => (
+                        {categorias.map(cat => (
                             <Col xs={12} md={6} key={cat.id}>
                                 <Form.Check
                                     type="checkbox"
                                     label={cat.name}
-                                    checked={selectedCategories.includes(cat.id)}
-                                    onChange={() => handleCheckboxToggle(cat.id, selectedCategories, setSelectedCategories)}
+                                    checked={categoriasSeleccionadas.includes(cat.id)}
+                                    onChange={() => handleCheckboxToggle(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
                                 />
                             </Col>
                         ))}
@@ -118,13 +122,13 @@ function CreateProject({ setUser }) {
                 <Form.Group className="mb-3">
                     <Form.Label>Habilidades Requeridas</Form.Label>
                     <Row>
-                        {abilities.map(ability => (
+                        {habilidades.map(ability => (
                             <Col xs={12} md={6} key={ability.id}>
                                 <Form.Check
                                     type="checkbox"
                                     label={ability.name}
-                                    checked={selectedAbilities.includes(ability.id)}
-                                    onChange={() => handleCheckboxToggle(ability.id, selectedAbilities, setSelectedAbilities)}
+                                    checked={habilidadesSeleccionadas.includes(ability.id)}
+                                    onChange={() => handleCheckboxToggle(ability.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
                                 />
                             </Col>
                         ))}
