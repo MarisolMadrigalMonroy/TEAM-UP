@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
 import Project from '../components/Project'
-//import '../styles/Home.css'
-import ProjectsList from '../components/ProjectsList'
 import HomeShowcase from '../components/HomeShowcase'
 
 function Home() {

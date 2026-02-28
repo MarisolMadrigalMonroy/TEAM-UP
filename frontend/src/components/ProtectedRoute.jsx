@@ -4,52 +4,58 @@ import api from '../api'
 import { REFRESH_TOKEN, ACCESS_TOKEN } from '../constants'
 import { useState, useEffect } from 'react'
 
+/*
+ * Componente para rutas que necesitan autorización para desplegarse
+*/
 function ProtectedRoute({children}) {
-    const [isAuthorized, setIsAuthorized] = useState(null)
+    const [autorizado, setAutorizado] = useState(null)
 
     useEffect(() => {
-        auth().catch(() => setIsAuthorized(false))
+        autorizar().catch(() => setAutorizado(false))
     }, [])
 
-    const refreshToken = async () => {
-        const refreshToken = localStorage.getItem(REFRESH_TOKEN)
+    // Función para actualizar token de acceso usando token de actualización
+    const actualizarToken = async () => {
+        const actualizarToken = localStorage.getItem(REFRESH_TOKEN)
         try {
-            const res = await api.post('/api/token/refresh/', {refresh: refreshToken})
+            const res = await api.post('/api/token/refresh/', {refresh: actualizarToken})
             if (res.status === 200) {
                 localStorage.setItem(ACCESS_TOKEN, res.data.access)
-                setIsAuthorized(true)
+                setAutorizado(true)
             }
             else {
-                setIsAuthorized(false)
+                setAutorizado(false)
             }
         } catch (error) {
             console.log(error)
-            setIsAuthorized(false)
+            setAutorizado(false)
         }
     }
 
-    const auth = async () => {
+    // Función para autorizar acceso
+    const autorizar = async () => {
         const token = localStorage.getItem(ACCESS_TOKEN)
         if (!token) {
-            setIsAuthorized(false)
+            setAutorizado(false)
             return
         }
-        const decoded = jwtDecode(token)
-        const tokenExpiration = decoded.exp
-        const now = Date.now()/1000
-        if (tokenExpiration < now) {
-            await refreshToken()
+        const decodificado = jwtDecode(token)
+        const expiracionToken = decodificado.exp
+        const ahora = Date.now()/1000
+        // Si la fecha de expiración del token es antes que ahora, actualizar token
+        if (expiracionToken < ahora) {
+            await actualizarToken()
         }
         else {
-            setIsAuthorized(true)
+            setAutorizado(true)
         }
     }
 
-    if (isAuthorized === null) {
-        return <div>Loading...</div>
+    if (autorizado === null) {
+        return <div>Cargando...</div>
     }
 
-    return isAuthorized ? children : <Navigate to="/login" /> 
+    return autorizado ? children : <Navigate to="/login" /> 
 }
 
 export default ProtectedRoute
