@@ -10,16 +10,21 @@ import api from '../api';
 import { obtenerPerfilUsuario } from '../auth';
 import { toast } from 'react-toastify';
 
-function CommentList({ comments }) {
+/*
+* Componente para lista de comentarios
+*/
+function ListaComentarios({ commentarios }) {
     return (
         <div className="mt-4">
             <h5>Comentarios</h5>
-            {comments.length === 0 ? (
+            {/* Si no hay comentarios desplegar texto de invitación en caso contrario mostrar lista de comentarios */}
+            {commentarios.length === 0 ? (
                 <p className="text-muted">No hay comentarios. ¡Sé el primero en comentar!</p>
             ) : (
                 <>
-                    {comments.map(comment => (
-                        <Card key={comment.id} className="mb-3 shadow-sm">
+                    {/* Para cada comentario crear una carta con icono de usuario, nombre, fecha y comentario */}
+                    {commentarios.map(commentario => (
+                        <Card key={commentario.id} className="mb-3 shadow-sm">
                             <Card.Body>
                                 <Row>
                                     <Col xs={1} className="text-center">
@@ -27,12 +32,12 @@ function CommentList({ comments }) {
                                     </Col>
                                     <Col>
                                         <div className="d-flex justify-content-between">
-                                            <strong>{comment.author_username}</strong>
+                                            <strong>{commentario.author_username}</strong>
                                             <small className="text-muted">
-                                                {new Date(comment.created_at).toLocaleString()}
+                                                {new Date(commentario.created_at).toLocaleString()}
                                             </small>
                                         </div>
-                                        <p className="mb-0">{comment.content}</p>
+                                        <p className="mb-0">{commentario.content}</p>
                                     </Col>
                                 </Row>
                             </Card.Body>
@@ -44,91 +49,100 @@ function CommentList({ comments }) {
     );
 }
 
+/*
+* Componente para detalles del proyecto
+*/
 function ProjectDetail() {
-    const user = obtenerUsuarioActual();
-    const isLoggedIn = !!user;
-    const { id } = useParams();
-    const [project, setProject] = useState(null);
-    const [comments, setComments] = useState([]);
-    const [newComment, setNewComment] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [posting, setPosting] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
+    const usuario = obtenerUsuarioActual();
+    const sesionIniciada = !!usuario;
+    const { id } = useParams(); // id del proyecto desde la url
+    const [proyecto, setProyecto] = useState(null);
+    const [comentarios, setComentarios] = useState([]);
+    const [nuevoComentario, setNuevoComentario] = useState('');
+    const [cargando, setCargando] = useState(true);
+    const [publicando, setPublicando] = useState(false);
+    const [usuarioActual, setUsuarioActual] = useState(null);
     const [liked, setLiked] = useState(false);
 
-    const fetchProject = async () => {
+    // Función para obtener el proyecto
+    const obtenerProyecto = async () => {
         try {
-            const [projRes, userRes] = await Promise.all([
+            const [proyRes, userRes] = await Promise.all([
                 api.get(`/api/projects/${id}/`),
                 obtenerPerfilUsuario()
             ]);
-            setProject(projRes.data);
-            setCurrentUser(userRes);
+            setProyecto(proyRes.data);
+            setUsuarioActual(userRes);
 
-            if (projRes.data.has_liked) {
+            if (proyRes.data.has_liked) {
                 setLiked(true);
             }
         } catch (err) {
-            console.error('Error fetching project:', err);
+            console.error('Error obteniendo el proyecto:', err);
         }
     };
 
-    const fetchComments = async () => {
+    // Función para obtener comentarios del proyecto
+    const obtenerComentarios = async () => {
         try {
             const res = await api.get(`/api/projects/${id}/comments/`);
-            setComments(res.data);
+            setComentarios(res.data);
         } catch (err) {
-            console.error('Error fetching comments:', err);
+            console.error('Error obteniendo los comentarios:', err);
         }
     };
 
     useEffect(() => {
         const init = async () => {
-            setLoading(true);
-            await fetchProject();
-            await fetchComments();
-            setLoading(false);
+            setCargando(true);
+            await obtenerProyecto();
+            await obtenerComentarios();
+            setCargando(false);
         };
         init();
     }, [id]);
 
+    // Función para controlar la publicación de un comentario
     const handlePostComment = async (e) => {
         e.preventDefault();
-        if (!newComment.trim()) return;
-        setPosting(true);
+        // Si el comentario está vacío regresamos, sino procedemos con la publicación
+        if (!nuevoComentario.trim()) return;
+        setPublicando(true);
         try {
             const res = await api.post(`/api/projects/${id}/comments/`, {
-                content: newComment,
+                content: nuevoComentario,
                 project: id,
             });
-            setComments([...comments, res.data]);
-            setNewComment('');
+            setComentarios([...comentarios, res.data]);
+            setNuevoComentario('');
         } catch (err) {
-            console.error('Error posting comment:', err);
+            console.error('Error publicando comentario:', err);
         } finally {
-            setPosting(false);
+            setPublicando(false);
         }
     };
 
+    // Función para controlar la acción de me gusta en un proyecto
     const handleLike = async () => {
         try {
             const res = await api.post(`/api/match/like-project/`, {
-                project: project.id,
+                project: proyecto.id,
                 liked: true,
             });
             setLiked(true);
+            // Si hay un emparejamiento entre usuario y proyecto, mostrar notificación
             if (res.data.matched && res.data.match_with) {
-                toast.success(`🎉 Hiciste match con ${res.data.match_with} on "${project.name}"!`);
+                toast.success(`🎉 Hiciste match con ${res.data.match_with} en "${proyecto.name}"!`);
             } else {
-                toast.info(`Te gusta "${project.name}"`);
+                toast.info(`Te gusta "${proyecto.name}"`);
             }
         } catch (err) {
-            console.error("Error liking project:", err);
+            console.error("Error al darle me gusta al proyecto:", err);
             toast.error("Algo salió mal al darle me gusta al proyecto.");
         }
     };
 
-    if (loading) {
+    if (cargando) {
         return (
             <div className="text-center my-5">
                 <Spinner animation="border" />
@@ -136,27 +150,26 @@ function ProjectDetail() {
         );
     }
 
-    const isCreatorOrMentor =
-        currentUser &&
-        (currentUser.id === project.creator || currentUser.id === project.mentor?.id);
-
-    console.log(" isCreatorOrMentor ",  isCreatorOrMentor )
+    // Variable para saber si el usuario es el creador o asesor del proyecto
+    const esCreadorOAsesor =
+        usuarioActual &&
+        (usuarioActual.id === proyecto.creator || usuarioActual.id === proyecto.mentor?.id);
 
     return (
         <Container fluid className="py-5 px-4">
             <Row className="justify-content-center">
                 <Col lg={10} xl={9}>
-                    {/* Header like a blog */}
+                    {/* Encabezado tipo blog */}
                     <header className="pb-3 mb-4 border-bottom">
-                        <h1 className="display-4">{project.name}</h1>
-                        <p className="lead">{project.description}</p>
+                        <h1 className="display-4">{proyecto.name}</h1>
+                        <p className="lead">{proyecto.description}</p>
                     </header>
 
                     <Row>
-                        {/* Left: Comments + Form */}
+                        {/* Izquierda: Comentarios + Formulario */}
                         <Col md={8}>
-                            <CommentList comments={comments} />
-                            {isLoggedIn && (
+                            <ListaComentarios commentarios={comentarios} />
+                            {sesionIniciada && (
                                 <div className="position-sticky bottom-0 bg-white p-3 border-top">
                                     <Form onSubmit={handlePostComment}>
                                         <Form.Group className="mb-2">
@@ -164,20 +177,20 @@ function ProjectDetail() {
                                             <Form.Control
                                                 as="textarea"
                                                 rows={3}
-                                                value={newComment}
-                                                onChange={(e) => setNewComment(e.target.value)}
-                                                placeholder="Escribt tu comentario aquí..."
+                                                value={nuevoComentario}
+                                                onChange={(e) => setNuevoComentario(e.target.value)}
+                                                placeholder="Escribe tu comentario aquí..."
                                             />
                                         </Form.Group>
-                                        <Button type="submit" disabled={posting}>
-                                            {posting ? 'Publicando...' : 'Publicar Comentario'}
+                                        <Button type="submit" disabled={publicando}>
+                                            {publicando ? 'Publicando...' : 'Publicar Comentario'}
                                         </Button>
                                     </Form>
                                 </div>
                             )}
                         </Col>
 
-                        {/* Right: Project Details */}
+                        {/* Derecha: Detalles del proyecto */}
                         <Col md={4}>
                             <div className="position-sticky top-0" style={{ zIndex: 1 }}>
                                 <Card className="shadow-sm">
@@ -185,43 +198,43 @@ function ProjectDetail() {
                                     <ListGroup variant="flush">
                                         <ListGroup.Item>
                                             <strong>Asesor:</strong>{' '}
-                                            {project.mentor ? project.mentor.username : 'Ninguno'}
+                                            {proyecto.mentor ? proyecto.mentor.username : 'Ninguno'}
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                         <strong>Estudiantes:</strong>
-                                        {project.students?.length > 0 ? (
+                                        {proyecto.students?.length > 0 ? (
                                             <ul className="list-unstyled mt-2">
-                                            {project.students.map(student => {
-                                                const isCreator = student.id === project.creator;
-                                                const isMentor = project.mentor && student.id === project.mentor.id;
+                                            {proyecto.students.map(estudiante => {
+                                                const esCreador = estudiante.id === proyecto.creator;
+                                                const esAsesor = proyecto.mentor && estudiante.id === proyecto.mentor.id;
 
                                                 return (
                                                 <li
-                                                    key={student.id}
+                                                    key={estudiante.id}
                                                     className="d-flex justify-content-between align-items-center mb-2"
                                                 >
-                                                    <span>{student.username}</span>
-                                                    {isCreator || isMentor ? (
-                                                    <span className="badge bg-info">{isCreator ? "Creador" : "Asesor"}</span>
-                                                    ) : isCreatorOrMentor ? (
+                                                    <span>{estudiante.username}</span>
+                                                    {esCreador || esAsesor ? (
+                                                    <span className="badge bg-info">{esCreador ? "Creador" : "Asesor"}</span>
+                                                    ) : esCreadorOAsesor ? (
                                                     <Button
                                                         variant="outline-danger"
                                                         size="sm"
                                                         onClick={async () => {
                                                         try {
-                                                            await api.post(`/api/projects/${project.id}/unassign-user/`, {
-                                                            user_id: student.id,
+                                                            await api.post(`/api/projects/${proyecto.id}/unassign-user/`, {
+                                                            user_id: estudiante.id,
                                                             });
-                                                            setProject(prev => ({
+                                                            setProyecto(prev => ({
                                                             ...prev,
-                                                            students: prev.students.filter(u => u.id !== student.id),
+                                                            students: prev.students.filter(u => u.id !== estudiante.id),
                                                             status:
                                                                 prev.students.length - 1 < 3 && prev.status === "team_complete"
                                                                 ? "looking_students"
                                                                 : prev.status,
                                                             }));
                                                         } catch (err) {
-                                                            console.error("Error removing student:", err);
+                                                            console.error("Error removiando al estudiante:", err);
                                                         }
                                                         }}
                                                     >
@@ -238,42 +251,42 @@ function ProjectDetail() {
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                             <strong>Categorías:</strong>{' '}
-                                            {project.categories_details?.map(cat => cat.name).join(', ') || 'Ninguna'}
+                                            {proyecto.categories_details?.map(cat => cat.name).join(', ') || 'Ninguna'}
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                             <strong>Habilidades Requeridas:</strong>{' '}
-                                            {project.required_abilities_details?.map(ab => ab.name).join(', ') || 'Ninguna'}
+                                            {proyecto.required_abilities_details?.map(ab => ab.name).join(', ') || 'Ninguna'}
                                         </ListGroup.Item>
-
-                                        {isCreatorOrMentor && (
+                                        {/* Si es creador o asesor puede editar proyectos, ver estudiantes y asesores con match */}
+                                        {esCreadorOAsesor && (
                                             <>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${project.id}/edit`} className="btn btn-primary mt-3 w-100">
+                                                    <Link to={`/projects/${proyecto.id}/edit`} className="btn btn-primary mt-3 w-100">
                                                         Editar Proyecto
                                                     </Link>
                                                 </ListGroupItem>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${project.id}/matched-users`} className="btn btn-outline-success mt-2 w-100">
+                                                    <Link to={`/projects/${proyecto.id}/matched-users`} className="btn btn-outline-success mt-2 w-100">
                                                         Ver Estudintes con Match
                                                     </Link>
                                                 </ListGroupItem>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${project.id}/matched-mentors`} className="btn btn-outline-info mt-2 w-100">
-                                                        Ver Asesores con Matc
+                                                    <Link to={`/projects/${proyecto.id}/matched-mentors`} className="btn btn-outline-info mt-2 w-100">
+                                                        Ver Asesores con Match
                                                     </Link>
                                                 </ListGroupItem>
                                             </>
                                         )}
                                     </ListGroup>
-                                    {isLoggedIn && (() => {
-                                        const isStudent = currentUser?.user_type === "student";
-                                        const isMentor = currentUser?.user_type === "mentor";
-                                        const isOwner = currentUser?.id === project.creator;
-                                        const isStudentInAnyProject = isStudent && currentUser?.projects?.length > 0;
+                                    {sesionIniciada && (() => {
+                                        const esEstudiante = usuarioActual?.user_type === "student";
+                                        const esAsesor = usuarioActual?.user_type === "mentor";
+                                        const esPropietario = usuarioActual?.id === proyecto.creator;
+                                        const esEstudianteEnUnProyecto = esEstudiante && usuarioActual?.projects?.length > 0;
 
-                                        if (isOwner) return null;
+                                        if (esPropietario) return null;
 
-                                        if (isStudentInAnyProject) return null;
+                                        if (esEstudianteEnUnProyecto) return null;
 
                                         if (liked) {
                                             return (
@@ -285,7 +298,7 @@ function ProjectDetail() {
                                             );
                                         }
 
-                                        if (isMentor || isStudent) {
+                                        if (esAsesor || esEstudiante) {
                                             return (
                                             <ListGroupItem>
                                                 <Button
