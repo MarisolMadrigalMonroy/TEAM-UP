@@ -4,53 +4,58 @@ import api from '../api';
 import { Button, Card, Spinner } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 
+/*
+* Componente que representa sugerencias de proyectos 
+*/
 function SuggestedProjects({ user }) {
-  const [suggested, setSuggested] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sugeridos, setSugeridos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [indiceActual, setIndiceActual] = useState(0);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
+    // Función para obtener sugerencias de proyectos
+    const obtenerSugerencias = async () => {
       try {
         const res = await api.get('/api/match/ai-suggested-projects/');
-        setSuggested(res.data);
+        setSugeridos(res.data);
       } catch (err) {
-        console.error('Error fetching suggested projects:', err);
+        console.error('Error obteniendo proyectos sugeridos:', err);
       } finally {
-        setLoading(false);
+        setCargando(false);
       }
     };
-    fetchSuggestions();
+    obtenerSugerencias();
   }, []);
 
-  const handleAction = async (action) => {
-    const project = suggested[currentIndex];
-    const liked = action === 'like'; 
+  // Función para controlar cuando se le da me gusta/no me gusta a un proyecto
+  const handleAction = async (accion) => {
+    const proyecto = sugeridos[indiceActual];
+    const gustado = accion === 'like'; 
 
     try {
-        const res = await api.post(`/api/match/${action}-project/`, {
-            project: project.id,
-            liked: liked,
+        const res = await api.post(`/api/match/${accion}-project/`, {
+            project: proyecto.id,
+            liked: gustado,
             });
         if (res.data.matched && res.data.match_with) {
-          toast.success(`🎉 Hiciste match con ${res.data.match_with} en "${project.name}"!`);
+          toast.success(`🎉 Hiciste match con ${res.data.match_with} en "${proyecto.name}"!`);
         }
-        setCurrentIndex((prev) => prev + 1);
+        setIndiceActual((prev) => prev + 1);
     } catch (err) {
-        console.error(`Error when trying to ${action} project:`, err);
+        console.error(`Error tratando de dar ${accion} al proyecto:`, err);
     }
   };
 
-  if (loading) return <div className="text-center"><Spinner animation="border" /></div>;
-  if (currentIndex >= suggested.length) return <p>No hay más sugerencias por el momento.</p>;
+  if (cargando) return <div className="text-center"><Spinner animation="border" /></div>;
+  if (indiceActual >= sugeridos.length) return <p>No hay más sugerencias por el momento.</p>;
 
-  const project = suggested[currentIndex];
+  const proyecto = sugeridos[indiceActual];
 
   return (
     <Card className="p-4 shadow-sm">
       <Card.Body>
-        <Card.Title>{project.name}</Card.Title>
-        <Card.Text>{project.description}</Card.Text>
+        <Card.Title>{proyecto.name}</Card.Title>
+        <Card.Text>{proyecto.description}</Card.Text>
 
         <div className="d-flex gap-2">
           <Button variant="danger" onClick={() => handleAction('dislike')}>
