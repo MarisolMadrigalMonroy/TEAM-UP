@@ -2,67 +2,70 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
+/*
+* Componente que representa la página de asesores con match 
+*/
 export default function MatchedMentors() {
   const { id } = useParams();
-  const [matchedMentors, setMatchedMentors] = useState([]);
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [asesoresConMatch, setAsesoresConMatch] = useState([]);
+  const [proyecto, setProyecto] = useState(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    obtenerDatos();
   }, [id]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const obtenerDatos = async () => {
+    setCargando(true);
     try {
-      const [projRes, mentorsRes] = await Promise.all([
+      const [proyRes, asesoresRes] = await Promise.all([
         api.get(`/api/projects/${id}/`),
         api.get(`/api/projects/${id}/matched-mentors/`)
       ]);
-      setProject(projRes.data);
-      setMatchedMentors(mentorsRes.data);
+      setProyecto(proyRes.data);
+      setAsesoresConMatch(asesoresRes.data);
     } catch (err) {
-      console.error("Error fetching project or matched mentors", err);
+      console.error("Error obteniendo proyecto o asesores con match", err);
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
-  const handleAccept = async (mentorId) => {
+  const handleAccept = async (asesorId) => {
     try {
-      await api.post(`/api/projects/${id}/assign-mentor/`, { mentor_id: mentorId });
-      await fetchData();
+      await api.post(`/api/projects/${id}/assign-mentor/`, { mentor_id: asesorId });
+      await obtenerDatos();
       alert("Asesor asignado exitosamente!");
     } catch (err) {
-      console.error("Error assigning mentor", err);
+      console.error("Error asignando asesor", err);
       alert("Error asignando el asesor");
     }
   };
 
-  if (loading) return <p>Cargando matches...</p>;
+  if (cargando) return <p>Cargando matches...</p>;
 
   return (
     <div className="container">
       <h2>Asesores que Hicieron Match</h2>
-      {matchedMentors.length === 0 ? (
+      {asesoresConMatch.length === 0 ? (
         <p>No se encontraron asesores con un match.</p>
       ) : (
         <ul>
-          {matchedMentors.map((mentor) => (
-            <li key={mentor.id} style={{ marginBottom: "10px" }}>
-              <strong>{mentor.username}</strong> — {mentor.status || "Sin estado"}
+          {asesoresConMatch.map((asesor) => (
+            <li key={asesor.id} style={{ marginBottom: "10px" }}>
+              <strong>{asesor.username}</strong> — {asesor.status || "Sin estado"}
               <br />
-              {mentor.bio && <em>{mentor.bio}</em>}
+              {asesor.bio && <em>{asesor.bio}</em>}
               <br />
 
-              {project?.mentor ? (
-                mentor.id === project.mentor.id ? (
+              {proyecto?.mentor ? (
+                asesor.id === proyecto.mentor.id ? (
                   <span className="badge bg-success">Asignado</span>
                 ) : (
                   <span className="badge bg-secondary">El proyecto ya cuenta con asesor</span>
                 )
               ) : (
-                <button  className="btn btn-outline-success mt-2 w-10" onClick={() => handleAccept(mentor.id)}>Aceptar</button>
+                <button  className="btn btn-outline-success mt-2 w-10" onClick={() => handleAccept(asesor.id)}>Aceptar</button>
               )}
             </li>
           ))}
