@@ -2,70 +2,75 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Card, Button } from 'react-bootstrap';
 import api from '../api';
 
+/*
+* Componente que representa la página para mostrar proyectos 
+*/
 function ProjectsPage() {
-  const [projects, setProjects] = useState([]);
-  const [search, setSearch] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [abilities, setAbilities] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedAbilities, setSelectedAbilities] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [proyectos, setProyectos] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [categorias, setCategorias] = useState([]);
+  const [habilidades, setHabilidades] = useState([]);
+  const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
+  const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState('');
 
-  const categoryList = Array.isArray(categories) ? categories : categories?.results || [];
-  const abilityList = Array.isArray(abilities) ? abilities : abilities?.results || [];
-  const projectList = Array.isArray(projects) ? projects : projects?.results || [];
+  const listaCategorias = Array.isArray(categorias) ? categorias : categorias?.results || [];
+  const listaHabilidades = Array.isArray(habilidades) ? habilidades : habilidades?.results || [];
+  const listaProyectos = Array.isArray(proyectos) ? proyectos : proyectos?.results || [];
 
-  const STATUS_OPTIONS = [
+  const OPCIONES_ESTADO = [
     { value: '', label: 'Todos los Estados' },
     { value: 'looking_students', label: 'Buscando Estudiantes' },
     { value: 'team_complete', label: 'Equipo Completo' },
     { value: 'looking_mentor', label: 'Buscando Asesor' },
     { value: 'in_progress', label: 'En Desarrollo' },
     { value: 'completed', label: 'Completo' },
-    { value: 'cancelled', label: 'Cancellado' },
+    { value: 'cancelled', label: 'Cancelado' },
   ];
 
   useEffect(() => {
-    const fetchFilters = async () => {
+    // Función para obtener filtros (categorias y habilidades)
+    const obtenerFiltros = async () => {
       try {
-        const [catRes, abRes] = await Promise.all([
+        const [catRes, habRes] = await Promise.all([
           api.get('/api/categories/'),
           api.get('/api/abilities/')
         ]);
-        console.log("categories: " + catRes.data);
-        setCategories(catRes.data);
-        setAbilities(abRes.data);
+
+        setCategorias(catRes.data);
+        setHabilidades(habRes.data);
       } catch (err) {
-        console.error('Error fetching filters:', err);
+        console.error('Error obteniendo los filtros:', err);
       }
     };
 
-    fetchFilters();
+    obtenerFiltros();
   }, []);
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    // Función para obtener proyectos
+    const obtenerProyectos = async () => {
       try {
-        const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        selectedCategories.forEach(cat => params.append('category', cat));
-        selectedAbilities.forEach(ab => params.append('ability', ab));
-        if (selectedStatus) params.append('status', selectedStatus);
+        const parametros = new URLSearchParams();
+        if (busqueda) parametros.append('search', busqueda);
+        categoriasSeleccionadas.forEach(cat => parametros.append('category', cat));
+        habilidadesSeleccionadas.forEach(ab => parametros.append('ability', ab));
+        if (estadoSeleccionado) parametros.append('status', estadoSeleccionado);
 
-        const res = await api.get(`/api/projects/?${params.toString()}`);
-        setProjects(res.data);
+        const res = await api.get(`/api/projects/?${parametros.toString()}`);
+        setProyectos(res.data);
       } catch (err) {
-        console.error('Error fetching projects:', err);
+        console.error('Error obteniendo proyectos:', err);
       }
     };
 
-    const debounceTimer = setTimeout(fetchProjects, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [search, selectedCategories, selectedAbilities, selectedStatus]);
+    const temporizador = setTimeout(obtenerProyectos, 300);
+    return () => clearTimeout(temporizador);
+  }, [busqueda, categoriasSeleccionadas, habilidadesSeleccionadas, estadoSeleccionado]);
 
-  const handleCheckboxChange = (value, list, setList) => {
-    setList(prev =>
-      prev.includes(value) ? prev.filter(id => id !== value) : [...prev, value]
+  const handleCheckboxChange = (valor, lista, setLista) => {
+    setLista(prev =>
+      prev.includes(valor) ? prev.filter(id => id !== valor) : [...prev, valor]
     );
   };
 
@@ -81,18 +86,18 @@ function ProjectsPage() {
               <Form.Control
                 type="text"
                 placeholder="Buscar por nombre o descripción"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
               <Form.Label>Estado</Form.Label>
               <Form.Select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                value={estadoSeleccionado}
+                onChange={(e) => setEstadoSeleccionado(e.target.value)}
               >
-                {STATUS_OPTIONS.map(opt => (
+                {OPCIONES_ESTADO.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </Form.Select>
@@ -100,26 +105,26 @@ function ProjectsPage() {
 
             <Form.Group className="mb-3">
               <Form.Label>Categorias</Form.Label>
-              {categoryList.map(cat => (
+              {listaCategorias.map(cat => (
                 <Form.Check
                   key={cat.id}
                   type="checkbox"
                   label={cat.name}
-                  checked={selectedCategories.includes(cat.id)}
-                  onChange={() => handleCheckboxChange(cat.id, selectedCategories, setSelectedCategories)}
+                  checked={categoriasSeleccionadas.includes(cat.id)}
+                  onChange={() => handleCheckboxChange(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
                 />
               ))}
             </Form.Group>
 
             <Form.Group className="mb-3">
               <Form.Label>Habilidades Requeridas</Form.Label>
-              {abilityList.map(ab => (
+              {listaHabilidades.map(ab => (
                 <Form.Check
                   key={ab.id}
                   type="checkbox"
                   label={ab.name}
-                  checked={selectedAbilities.includes(ab.id)}
-                  onChange={() => handleCheckboxChange(ab.id, selectedAbilities, setSelectedAbilities)}
+                  checked={habilidadesSeleccionadas.includes(ab.id)}
+                  onChange={() => handleCheckboxChange(ab.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
                 />
               ))}
             </Form.Group>
@@ -128,14 +133,14 @@ function ProjectsPage() {
 
         <Col md={9}>
           <Row>
-            {projectList.length === 0 && <p>No projects found.</p>}
-            {projectList.map(proj => (
-              <Col md={6} lg={4} key={proj.id} className="mb-4">
+            {listaProyectos.length === 0 && <p>No se encontraron proyectos.</p>}
+            {listaProyectos.map(proy => (
+              <Col md={6} lg={4} key={proy.id} className="mb-4">
                 <Card>
                   <Card.Body>
-                    <Card.Title>{proj.name}</Card.Title>
-                    <Card.Text>{proj.description.slice(0, 120)}...</Card.Text>
-                    <Button href={`/projects/${proj.id}`} variant="primary">
+                    <Card.Title>{proy.name}</Card.Title>
+                    <Card.Text>{proy.description.slice(0, 120)}...</Card.Text>
+                    <Button href={`/projects/${proy.id}`} variant="primary">
                       Ver Proyecto
                     </Button>
                   </Card.Body>
