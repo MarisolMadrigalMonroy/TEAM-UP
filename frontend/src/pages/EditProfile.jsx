@@ -3,7 +3,7 @@ import api from '../api';
 import { Form, Button, Container, Row, Col, Card } from 'react-bootstrap';
 
 /*
-* Componente para editar un proyecto
+* Componente para editar perfil de usuario
 */
 function EditProfile() {
     const [editando, setEditando] = useState(false);

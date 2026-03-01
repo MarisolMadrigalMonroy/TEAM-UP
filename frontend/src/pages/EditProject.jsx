@@ -4,67 +4,72 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
 import api from '../api';
 
+/*
+* Componente para editar un proyecto
+*/
 function EditProject({ user }) {
     const { id } = useParams();
-    const [project, setProject] = useState(null);
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [status, setStatus] = useState('');
-    const [categories, setCategories] = useState([]);
-    const [selectedCategories, setSelectedCategories] = useState([]);
-    const [abilities, setAbilities] = useState([]);
-    const [selectedAbilities, setSelectedAbilities] = useState([]);
+    const [proyecto, setProyecto] = useState(null);
+    const [nombre, setNombre] = useState('');
+    const [descripcion, setDescripcion] = useState('');
+    const [estado, setEstado] = useState('');
+    const [categorias, setCategorias] = useState([]);
+    const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
+    const [habilidades, setHabilidades] = useState([]);
+    const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
     const STATUS_OPTIONS = [
-        { value: 'looking_students', label: 'Looking for Students' },
-        { value: 'team_complete', label: 'Team Complete' },
-        { value: 'looking_mentor', label: 'Looking for Mentor' },
-        { value: 'in_progress', label: 'Under Development' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'cancelled', label: 'Cancelled' }
+        { value: 'looking_students', label: 'Buscando Estudiantes' },
+        { value: 'team_complete', label: 'Equipo Completo' },
+        { value: 'looking_mentor', label: 'Buscando Asesor' },
+        { value: 'in_progress', label: 'En Desarrollo' },
+        { value: 'completed', label: 'Completo' },
+        { value: 'cancelled', label: 'Cancelado' }
     ];
 
     useEffect(() => {
-        async function fetchData() {
+        // Función para obtener datos del proyecto
+        async function obtenerDatos() {
             try {
-                const [projRes, catRes, abRes] = await Promise.all([
+                const [proyRes, catRes, habRes] = await Promise.all([
                     api.get(`/api/projects/${id}/`),
                     api.get('/api/categories/'),
                     api.get('/api/abilities/')
                 ]);
 
-                const data = projRes.data;
-                setProject(data);
+                const data = proyRes.data;
+                setProyecto(data);
                 if (!user || 
                     (user.id !== data.creator && user.id !== data.mentor?.id)
                 ) {
-                    alert('You are not authorized to edit this project.');
+                    alert('No estás autorizado para editar este proyecto.');
                     navigate(`/projects/${id}`);
                     return;
                 }
-                setName(data.name);
-                setDescription(data.description);
-                setStatus(data.status || 'looking_students');
-                setSelectedCategories(data.categories_details.map(cat => cat.id));
-                setSelectedAbilities(data.required_abilities_details.map(ab => ab.id));
-                setCategories(catRes.data);
-                setAbilities(abRes.data);
+                setNombre(data.name);
+                setDescripcion(data.description);
+                setEstado(data.status || 'looking_students');
+                setCategoriasSeleccionadas(data.categories_details.map(cat => cat.id));
+                setHabilidadesSeleccionadas(data.required_abilities_details.map(ab => ab.id));
+                setCategorias(catRes.data);
+                setHabilidades(habRes.data);
             } catch (err) {
-                setError('Failed to load project or options.');
+                setError('Error cargando proyecto u opciones.');
                 console.error(err);
             }
         }
 
-        fetchData();
+        obtenerDatos();
     }, [id, navigate, user]);
 
-    const handleCheckboxToggle = (id, list, setter) => {
-        if (list.includes(id)) {
-            setter(list.filter(item => item !== id));
+    // Función para actualizar lista de opciones seleccionadas
+    const handleCheckboxToggle = (id, listaSeleccionada, setListaSeleccionada) => {
+        if (listaSeleccionada.includes(id)) {
+            setListaSeleccionada(listaSeleccionada.filter(item => item !== id));
         } else {
-            setter([...list, id]);
+            setListaSeleccionada([...listaSeleccionada, id]);
         }
     };
 
@@ -72,20 +77,20 @@ function EditProject({ user }) {
         e.preventDefault();
         try {
             await api.put(`/api/projects/${id}/`, {
-                name,
-                description,
-                status,
-                categories: selectedCategories,
-                required_abilities: selectedAbilities,
+                name: nombre,
+                description: descripcion,
+                status: estado,
+                categories: categoriasSeleccionadas,
+                required_abilities: habilidadesSeleccionadas,
             });
             navigate(`/projects/${id}`);
         } catch (err) {
-            setError('Failed to update project.');
+            setError('Error al actualizar el proyecto.');
             console.error(err);
         }
     };
 
-    if (!project) return <Container><p>Loading...</p></Container>;
+    if (!proyecto) return <Container><p>Cargando...</p></Container>;
 
     return (
         <Container className="py-5">
@@ -96,8 +101,8 @@ function EditProject({ user }) {
                     <Form.Label>Nombre del Proyecto</Form.Label>
                     <Form.Control
                         type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
+                        value={nombre}
+                        onChange={e => setNombre(e.target.value)}
                         required
                     />
                 </Form.Group>
@@ -107,8 +112,8 @@ function EditProject({ user }) {
                     <Form.Control
                         as="textarea"
                         rows={5}
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
+                        value={descripcion}
+                        onChange={e => setDescripcion(e.target.value)}
                         required
                     />
                 </Form.Group>
@@ -116,8 +121,8 @@ function EditProject({ user }) {
                 <Form.Group className="mb-3">
                     <Form.Label>Estado</Form.Label>
                     <Form.Select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
+                        value={estado}
+                        onChange={(e) => setEstado(e.target.value)}
                     >
                         {STATUS_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>
@@ -130,13 +135,13 @@ function EditProject({ user }) {
                 <Form.Group className="mb-3">
                     <Form.Label>Categorías</Form.Label>
                     <Row>
-                        {categories.map(cat => (
+                        {categorias.map(cat => (
                             <Col xs={12} md={6} key={cat.id}>
                                 <Form.Check
                                     type="checkbox"
                                     label={cat.name}
-                                    checked={selectedCategories.includes(cat.id)}
-                                    onChange={() => handleCheckboxToggle(cat.id, selectedCategories, setSelectedCategories)}
+                                    checked={categoriasSeleccionadas.includes(cat.id)}
+                                    onChange={() => handleCheckboxToggle(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
                                 />
                             </Col>
                         ))}
@@ -146,13 +151,13 @@ function EditProject({ user }) {
                 <Form.Group className="mb-3">
                     <Form.Label>Habilidades Requeridas</Form.Label>
                     <Row>
-                        {abilities.map(ability => (
-                            <Col xs={12} md={6} key={ability.id}>
+                        {habilidades.map(habilidad => (
+                            <Col xs={12} md={6} key={habilidad.id}>
                                 <Form.Check
                                     type="checkbox"
-                                    label={ability.name}
-                                    checked={selectedAbilities.includes(ability.id)}
-                                    onChange={() => handleCheckboxToggle(ability.id, selectedAbilities, setSelectedAbilities)}
+                                    label={habilidad.name}
+                                    checked={habilidadesSeleccionadas.includes(habilidad.id)}
+                                    onChange={() => handleCheckboxToggle(habilidad.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
                                 />
                             </Col>
                         ))}
