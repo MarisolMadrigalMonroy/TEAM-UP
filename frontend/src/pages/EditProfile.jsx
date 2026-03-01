@@ -2,62 +2,67 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { Form, Button, Container, Row, Col, Card } from 'react-bootstrap';
 
+/*
+* Componente para editar un proyecto
+*/
 function EditProfile() {
-    const [editing, setEditing] = useState(false);
+    const [editando, setEditando] = useState(false);
 
-    const [status, setStatus] = useState('');
-    const [interests, setInterests] = useState([]);
-    const [abilities, setAbilities] = useState([]);
-    const [selectedInterests, setSelectedInterests] = useState([]);
-    const [selectedAbilities, setSelectedAbilities] = useState([]);
+    const [estado, setEstado] = useState('');
+    const [intereses, setIntereses] = useState([]);
+    const [habilidades, setHabilidades] = useState([]);
+    const [interesesSeleccionados, setInteresesSeleccionados] = useState([]);
+    const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [bio, setBio] = useState('');
-
-    const [originalStatus, setOriginalStatus] = useState('');
-    const [originalInterests, setOriginalInterests] = useState([]);
-    const [originalAbilities, setOriginalAbilities] = useState([]);
-    const [originalBio, setOriginalBio] = useState('');
+    const [estadoOriginal, setEstadoOriginal] = useState('');
+    const [interesesOriginales, setInteresesOriginales] = useState([]);
+    const [habilidadesOriginales, setHabilidadesOriginales] = useState([]);
+    const [bioOriginal, setBioOriginal] = useState('');
 
     useEffect(() => {
-        const fetchData = async () => {
+        // Función para obtener datos del usuario
+        const obtenerDatos = async () => {
             try {
-                const [interestsRes, abilitiesRes, userRes] = await Promise.all([
+                const [interesesRes, habilidadesRes, usuarioRes] = await Promise.all([
                     api.get('/api/interests/'),
                     api.get('/api/abilities/'),
                     api.get('/api/user/me/')
                 ]);
-                setInterests(interestsRes.data);
-                setAbilities(abilitiesRes.data);
-                setStatus(userRes.data.status || '');
-                setSelectedInterests(userRes.data.interests || []);
-                setSelectedAbilities(userRes.data.abilities || []);
-                setBio(userRes.data.bio || '');
+                setIntereses(interesesRes.data);
+                setHabilidades(habilidadesRes.data);
+                setEstado(usuarioRes.data.status || '');
+                setInteresesSeleccionados(usuarioRes.data.interests || []);
+                setHabilidadesSeleccionadas(usuarioRes.data.abilities || []);
+                setBio(usuarioRes.data.bio || '');
 
-                if (userRes.data.status==='available') {
-                    setOriginalStatus('Buscando proyecto');
-                } else if (userRes.data.status==='enrolled') {
-                    setOriginalStatus('En un proyecto');
+                if (usuarioRes.data.status==='available') {
+                    setEstadoOriginal('Buscando proyecto');
+                } else if (usuarioRes.data.status==='enrolled') {
+                    setEstadoOriginal('En un proyecto');
                 } else {
-                    setOriginalStatus('No estoy buscando proyecto');
+                    setEstadoOriginal('No estoy buscando proyecto');
                 }
                 
-                setOriginalInterests(userRes.data.interests || []);
-                setOriginalAbilities(userRes.data.abilities || []);
-                setOriginalBio(userRes.data.bio || '');
+                setInteresesOriginales(usuarioRes.data.interests || []);
+                setHabilidadesOriginales(usuarioRes.data.abilities || []);
+                setBioOriginal(usuarioRes.data.bio || '');
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error obteniendo datos:', error);
             }
         };
-        fetchData();
+        obtenerDatos();
     }, []);
 
-    const toggleInterest = (id) => {
-        setSelectedInterests((prev) =>
+    // Función para actualizar intereses
+    const actualizarIntereses = (id) => {
+        setInteresesSeleccionados((prev) =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
     };
 
-    const toggleAbility = (id) => {
-        setSelectedAbilities((prev) =>
+    // Función para actualizar habilidades
+    const actualizarHabilidades = (id) => {
+        setHabilidadesSeleccionadas((prev) =>
             prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
         );
     };
@@ -66,52 +71,52 @@ function EditProfile() {
         e.preventDefault();
         try {
             await api.put('/api/user/me/', {
-                status,
-                interests: selectedInterests,
-                abilities: selectedAbilities,
+                status: estado,
+                interests: interesesSeleccionados,
+                abilities: habilidadesSeleccionadas,
                 bio
             });
 
-            setOriginalStatus(status);
-            setOriginalInterests(selectedInterests);
-            setOriginalAbilities(selectedAbilities);
-            setOriginalBio(bio);
+            setEstadoOriginal(estado);
+            setInteresesOriginales(interesesSeleccionados);
+            setHabilidadesOriginales(habilidadesSeleccionadas);
+            setBioOriginal(bio);
 
             alert('Perfil actualizado.');
-            setEditing(false);
+            setEditando(false);
         } catch (error) {
-            console.error('Error updating profile:', error);
+            console.error('Error actualizando el perfil:', error);
             alert('Error actualizando el perfil.');
         }
     };
 
     return (
         <Container className="my-5">
-        {!editing ? (
+        {!editando ? (
             <>
                 <h2>Perfil</h2>
                 <Card className="p-3">
-                    <p><strong>Estado:</strong> <span className="badge bg-primary">{originalStatus}</span></p>
-                    <p><strong>Biografía:</strong> {originalBio || '(No bio provided)'}</p>
+                    <p><strong>Estado:</strong> <span className="badge bg-primary">{estadoOriginal}</span></p>
+                    <p><strong>Biografía:</strong> {bioOriginal || '(No hay biografía)'}</p>
                     <p><strong>Intereses:</strong> 
-                        {originalInterests.length > 0
-                            ? originalInterests
-                                .map(id => interests.find(i => i.id === id)?.name)
+                        {interesesOriginales.length > 0
+                            ? interesesOriginales
+                                .map(id => intereses.find(i => i.id === id)?.name)
                                 .filter(Boolean)
-                                .map(name => <span key={name} className="badge bg-success me-1">{name}</span>)
+                                .map(nombre => <span key={nombre} className="badge bg-success me-1">{nombre}</span>)
                             : '(Ninguno)'
                         }
                     </p>
                     <p><strong>Habilidades:</strong> 
-                        {originalAbilities.length > 0
-                            ? originalAbilities
-                                .map(id => abilities.find(a => a.id === id)?.name)
+                        {habilidadesOriginales.length > 0
+                            ? habilidadesOriginales
+                                .map(id => habilidades.find(a => a.id === id)?.name)
                                 .filter(Boolean)
-                                .map(name => <span key={name} className="badge bg-info me-1">{name}</span>)
+                                .map(nombre => <span key={nombre} className="badge bg-info me-1">{nombre}</span>)
                             : '(Ninguna)'
                         }
                     </p>
-                    <Button onClick={() => setEditing(true)}>Editar</Button>
+                    <Button onClick={() => setEditando(true)}>Editar</Button>
                 </Card>
             </>
         ) : (
@@ -120,7 +125,7 @@ function EditProfile() {
                 <Form onSubmit={handleSubmit}>
                     <Form.Group className="mb-3">
                         <Form.Label><h3>Estado</h3></Form.Label>
-                        <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <Form.Select value={estado} onChange={(e) => setEstado(e.target.value)}>
                             <option value="available">Buscando proyecto</option>
                             <option value="enrolled">En un proyecto</option>
                             <option value="inactive">No estoy buscando proyecto</option>
@@ -140,13 +145,13 @@ function EditProfile() {
                     <Form.Group className="mb-3">
                         <Form.Label><h3>Intereses</h3></Form.Label>
                         <Row>
-                            {interests.map((interest) => (
-                                <Col xs={12} md={6} key={interest.id}>
+                            {intereses.map((interes) => (
+                                <Col xs={12} md={6} key={interes.id}>
                                     <Form.Check
                                         type="checkbox"
-                                        label={interest.name}
-                                        checked={selectedInterests.includes(interest.id)}
-                                        onChange={() => toggleInterest(interest.id)}
+                                        label={interes.name}
+                                        checked={interesesSeleccionados.includes(interes.id)}
+                                        onChange={() => actualizarIntereses(interes.id)}
                                     />
                                 </Col>
                             ))}
@@ -156,13 +161,13 @@ function EditProfile() {
                     <Form.Group className="mb-3">
                         <Form.Label><h3>Habilidades</h3></Form.Label>
                         <Row>
-                            {abilities.map((ability) => (
-                                <Col xs={12} md={6} key={ability.id}>
+                            {habilidades.map((habilidad) => (
+                                <Col xs={12} md={6} key={habilidad.id}>
                                     <Form.Check
                                         type="checkbox"
-                                        label={ability.name}
-                                        checked={selectedAbilities.includes(ability.id)}
-                                        onChange={() => toggleAbility(ability.id)}
+                                        label={habilidad.name}
+                                        checked={habilidadesSeleccionadas.includes(habilidad.id)}
+                                        onChange={() => actualizarHabilidades(habilidad.id)}
                                     />
                                 </Col>
                             ))}
@@ -171,11 +176,11 @@ function EditProfile() {
 
                     <Button type="submit" className="me-2">Guardar Cambios</Button>
                     <Button variant="secondary" onClick={() => {
-                        setEditing(false);
-                        setStatus(originalStatus);
-                        setSelectedInterests(originalInterests);
-                        setSelectedAbilities(originalAbilities);
-                        setBio(originalBio);
+                        setEditando(false);
+                        setEstado(estadoOriginal);
+                        setInteresesSeleccionados(interesesOriginales);
+                        setHabilidadesSeleccionadas(habilidadesOriginales);
+                        setBio(bioOriginal);
                     }}>Cancelar</Button>
                 </Form>
             </>
