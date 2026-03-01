@@ -4,109 +4,113 @@ import api from '../api';
 import { obtenerUsuarioActual } from '../auth';
 import { toast } from 'react-toastify';
 
+/*
+* Componente que representa sugerencias de usuarios
+*/
 function SuggestedUsers({ userType = 'student' }) {
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeProjects, setActiveProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const currentUser = obtenerUsuarioActual();
+  const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [proyectosActivos, setProyectosActivos] = useState([]);
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
+  const usuarioActual = obtenerUsuarioActual();
 
   useEffect(() => {
-    const fetchUserProjects = async () => {
+    // Función para obtener los proyectos del usuario
+    const obtenerProyectosDeUsuario = async () => {
       try {
         const res = await api.get('/api/projects/');
-        const owned = res.data.filter(p => {
-          const mentorId = typeof p.mentor === 'object' ? p.mentor?.id : p.mentor;
-          return p.creator === currentUser?.user_id || mentorId === currentUser?.user_id;
+        const poseidos = res.data.filter(p => {
+          const asesorId = typeof p.mentor === 'object' ? p.mentor?.id : p.mentor;
+          return p.creator === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
         });
 
-        setActiveProjects(owned);
+        setProyectosActivos(poseidos);
 
-        if (owned.length > 0) {
-          setSelectedProject(owned[0].id);
+        if (poseidos.length > 0) {
+          setProyectoSeleccionado(poseidos[0].id);
         }
       } catch (err) {
-        console.error('Error fetching user projects:', err);
+        console.error('Error obteniendo los proyectos:', err);
       }
     };
 
-    fetchUserProjects();
-  }, [currentUser?.user_id]);
+    obtenerProyectosDeUsuario();
+  }, [usuarioActual?.user_id]);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (!selectedProject) return;
+    const obtenerSugerencias = async () => {
+      if (!proyectoSeleccionado) return;
 
-      setLoading(true);
+      setCargando(true);
       try {
         const res = await api.get('/api/match/ai-suggested-users/', {
-          params: { project_id: selectedProject, user_type: userType }
+          params: { project_id: proyectoSeleccionado, user_type: userType }
         });
-        setSuggestedUsers(res.data);
+        setUsuariosSugeridos(res.data);
       } catch (err) {
-        console.error('Error fetching suggested users:', err);
+        console.error('Error obteniendo usuarios sugeridos:', err);
       } finally {
-        setLoading(false);
+        setCargando(false);
       }
     };
 
-    fetchSuggestions();
-  }, [selectedProject, userType]);
+    obtenerSugerencias();
+  }, [proyectoSeleccionado, userType]);
 
-  const handleLike = async (userId) => {
-    if (!selectedProject) {
+  const handleLike = async (usuarioId) => {
+    if (!proyectoSeleccionado) {
       alert('Por favor selecciona un proyecto.');
       return;
     }
     try {
       const res = await api.post('/api/match/like-user/', {
-        user: userId,
-        project: selectedProject,
+        user: usuarioId,
+        project: proyectoSeleccionado,
         liked: true
       });
       if (res.data.matched && res.data.match_with) {
         toast.success(`🎉 Hiciste match con ${res.data.match_with}!`);
       }
-      setSuggestedUsers(prev => prev.filter(u => u.id !== userId));
+      setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
     } catch (err) {
-      console.error('Error liking user:', err);
+      console.error('Error dando me gusta al usuario:', err);
     }
   };
 
-  const handleDislike = async (userId) => {
-    if (!selectedProject) {
+  const handleDislike = async (usuarioId) => {
+    if (!proyectoSeleccionado) {
       alert('Por favor selecciona un proyecto.');
       return;
     }
     try {
       await api.post('/api/match/dislike-user/', {
-        user: userId,
-        project: selectedProject,
+        user: usuarioId,
+        project: proyectoSeleccionado,
         liked: false
       });
-      setSuggestedUsers(prev => prev.filter(u => u.id !== userId));
+      setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
     } catch (err) {
-      console.error('Error disliking user:', err);
+      console.error('Error dando no me gusta al usuario:', err);
     }
   };
 
-  const selectedProjectObj = useMemo(() => {
-    return activeProjects.find(p => p.id === selectedProject);
-  }, [selectedProject, activeProjects]);
+  const proyectoSeleccionadoObj = useMemo(() => {
+    return proyectosActivos.find(p => p.id === proyectoSeleccionado);
+  }, [proyectoSeleccionado, proyectosActivos]);
 
   const canLikeOrDislike = useMemo(() => {
-    if (!selectedProjectObj || !currentUser) return false;
+    if (!proyectoSeleccionadoObj || !usuarioActual) return false;
 
-    const creatorId = selectedProjectObj.creator;
-    const mentorId =
-      typeof selectedProjectObj.mentor === 'object'
-        ? selectedProjectObj.mentor?.id
-        : selectedProjectObj.mentor;
+    const creadorId = proyectoSeleccionadoObj.creator;
+    const asesorId =
+      typeof proyectoSeleccionadoObj.mentor === 'object'
+        ? proyectoSeleccionadoObj.mentor?.id
+        : proyectoSeleccionadoObj.mentor;
 
-    return creatorId === currentUser.user_id || mentorId === currentUser.user_id;
-  }, [selectedProjectObj, currentUser]);
+    return creadorId === usuarioActual.user_id || asesorId === usuarioActual.user_id;
+  }, [proyectoSeleccionadoObj, usuarioActual]);
 
-  if (loading) {
+  if (cargando) {
     return (
       <div className="text-center my-5">
         <Spinner animation="border" />
@@ -120,45 +124,45 @@ function SuggestedUsers({ userType = 'student' }) {
         Sugerencias de {userType === 'mentor' ? 'Asesores' : 'Estudiantes'}
       </h2>
 
-      {activeProjects.length > 0 && (
+      {proyectosActivos.length > 0 && (
         <Form.Group className="mb-3" controlId="projectSelect">
           <Form.Label>Selecciona un Proyecto</Form.Label>
           <Form.Select
-            value={selectedProject || ''}
-            onChange={(e) => setSelectedProject(parseInt(e.target.value))}
+            value={proyectoSeleccionado || ''}
+            onChange={(e) => setProyectoSeleccionado(parseInt(e.target.value))}
           >
             <option value=''>-- Selecciona un Proyecto --</option>
-            {activeProjects.map(proj => (
+            {proyectosActivos.map(proj => (
               <option key={proj.id} value={proj.id}>{proj.name}</option>
             ))}
           </Form.Select>
         </Form.Group>
       )}
 
-      {!selectedProject && (
+      {!proyectoSeleccionado && (
         <Alert variant="warning">
           Por favor selecciona un proyecto para ver sugerencias de {userType === 'mentor' ? 'asesores' : 'estudiantes'}.
         </Alert>
       )}
 
-      {selectedProject && suggestedUsers.length === 0 && (
+      {proyectoSeleccionado && usuariosSugeridos.length === 0 && (
         <Alert variant="info">
           No hay sugerencias de {userType === 'mentor' ? 'asesores' : 'estudiantes'}.
         </Alert>
       )}
 
       <Row xs={1} md={2} lg={3} className="g-4">
-        {suggestedUsers.map(user => (
-          <Col key={user.id}>
+        {usuariosSugeridos.map(usuario => (
+          <Col key={usuario.id}>
             <Card className="h-100">
               <Card.Body>
-                <Card.Title>{user.username}</Card.Title>
-                <Card.Text>Bio: {user.bio}</Card.Text>
+                <Card.Title>{usuario.usuarioname}</Card.Title>
+                <Card.Text>Bio: {usuario.bio}</Card.Text>
 
                 {canLikeOrDislike && (
                   <div className="d-flex justify-content-between">
-                    <Button variant="success" onClick={() => handleLike(user.id)}>👍 Me gusta</Button>
-                    <Button variant="danger" onClick={() => handleDislike(user.id)}>👎 No Me Gusta</Button>
+                    <Button variant="success" onClick={() => handleLike(usuario.id)}>👍 Me gusta</Button>
+                    <Button variant="danger" onClick={() => handleDislike(usuario.id)}>👎 No Me Gusta</Button>
                   </div>
                 )}
               </Card.Body>
