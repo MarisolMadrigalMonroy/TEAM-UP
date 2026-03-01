@@ -3,44 +3,47 @@ import { Card, Spinner, Container, Badge, Button } from 'react-bootstrap';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
 
+/*
+* Componente que representa la página para mostrar notificaciones 
+*/
 function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchAllNotifications = async () => {
+    const obtenerNotificaciones = async () => {
       try {
         const res = await api.get('/api/notifications/');
-        setNotifications(Array.isArray(res.data) ? res.data : []);
+        setNotificaciones(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
-        console.error('Error loading notifications:', err);
+        console.error('Error cargando las notificaciones:', err);
       } finally {
-        setLoading(false);
+        setCargando(false);
       }
     };
 
-    fetchAllNotifications();
+    obtenerNotificaciones();
   }, []);
 
   const handleMarkAsRead = async (id) => {
     try {
       await api.post(`/api/notifications/${id}/mark-read/`);
-      setNotifications(prev =>
+      setNotificaciones(prev =>
         prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
       );
     } catch (err) {
-      console.error('Failed to mark as read:', err);
+      console.error('Error al marcar como leída:', err);
     }
   };
 
-  const handleNavigate = (notification) => {
-    if (notification.related_project) {
-      navigate(`/projects/${notification.related_project}`);
+  const handleNavigate = (notificacion) => {
+    if (notificacion.related_project) {
+      navigate(`/projects/${notificacion.related_project}`);
     }
   };
 
-  if (loading) {
+  if (cargando) {
     return (
       <Container className="py-5 text-center">
         <Spinner animation="border" />
@@ -52,10 +55,10 @@ function NotificationsPage() {
     <Container className="py-5">
       <h2 className="mb-4">Mis Notificaciones</h2>
 
-      {notifications.length === 0 ? (
+      {notificaciones.length === 0 ? (
         <p>No tienes notificaciones.</p>
       ) : (
-        notifications.map((n) => (
+        notificaciones.map((n) => (
           <Card
             key={n.id}
             className={`mb-3 ${!n.is_read ? 'border-primary' : ''}`}
