@@ -2,73 +2,76 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../api';
 
+/*
+* Componente que representa la página de estudiantes con match 
+*/
 export default function MatchedUsers() {
   const { id } = useParams();
-  const [matchedUsers, setMatchedUsers] = useState([]);
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [estudiantesConMatch, setEstudiantesConMatch] = useState([]);
+  const [proyecto, setProyecto] = useState(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    obtenerDatos();
   }, [id]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const obtenerDatos = async () => {
+    setCargando(true);
     try {
-      const [projRes, usersRes] = await Promise.all([
+      const [proyRes, usuarioRes] = await Promise.all([
         api.get(`/api/projects/${id}/`),
         api.get(`/api/projects/${id}/matched-users/`)
       ]);
 
-      const studentsOnly = usersRes.data.filter(
-        user => user.user_type === "student"
+      const soloEstudiantes = usuarioRes.data.filter(
+        usuario => usuario.user_type === "student"
       );
 
-      setProject(projRes.data);
-      setMatchedUsers(usersRes.data);
+      setProyecto(proyRes.data);
+      setEstudiantesConMatch(soloEstudiantes);
     } catch (err) {
-      console.error("Error fetching project or matched users", err);
+      console.error("Error obteniendo proyecto o estudiantes con match", err);
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
-  const handleAccept = async (userId) => {
+  const handleAccept = async (usuarioId) => {
     try {
-      await api.post(`/api/projects/${id}/assign-user/`, { user_id: userId });
-      await fetchData();
+      await api.post(`/api/projects/${id}/assign-user/`, { user_id: usuarioId });
+      await obtenerDatos();
       alert("¡Usuario agregado!");
     } catch (err) {
-      console.error("Error assigning user", err);
-      alert("Failed to assign user");
+      console.error("Error asignando usuario", err);
+      alert("Error asignando usuario");
     }
   };
 
-  if (loading) return <p>Cargando matches...</p>;
+  if (cargando) return <p>Cargando matches...</p>;
 
-  const isProjectFull = project?.students?.length >= 3;
+  const proyectoLleno = proyecto?.students?.length >= 3;
 
   return (
     <div className="container">
       <h2>Estudiantes que Hicieron Match</h2>
-      {matchedUsers.length === 0 ? (
+      {estudiantesConMatch.length === 0 ? (
         <p>No se encontraron estudiantes con un match.</p>
       ) : (
         <ul>
-          {matchedUsers.map((user) => (
-            <li key={user.id} style={{ marginBottom: "10px" }}>
-              <strong>{user.username}</strong> — {user.status || "Sin estado"}
+          {estudiantesConMatch.map((usuario) => (
+            <li key={usuario.id} style={{ marginBottom: "10px" }}>
+              <strong>{usuario.username}</strong> — {usuario.status || "Sin estado"}
               <br />
-              {user.bio && <em>{user.bio}</em>}
+              {usuario.bio && <em>{usuario.bio}</em>}
               <br />
-              {user.assigned ? (
+              {usuario.assigned ? (
                 <span className="badge bg-success">Aceptado</span>
-              ) : user.already_enrolled_in_other_project ? (
+              ) : usuario.already_enrolled_in_other_project ? (
                 <span className="badge bg-secondary">Aceptado en otro proyecto</span>
-              ) : isProjectFull ? (
+              ) : proyectoLleno ? (
                 <span className="badge bg-warning text-dark">Equipo completo</span>
               ) : (
-                <button onClick={() => handleAccept(user.id)}>Aceptar</button>
+                <button onClick={() => handleAccept(usuario.id)}>Aceptar</button>
               )}
             </li>
           ))}
