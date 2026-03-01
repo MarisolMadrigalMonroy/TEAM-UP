@@ -3,51 +3,50 @@ import SuggestedUsers from './SuggestedUsers';
 import SuggestedProjects from './SuggestedProjects';
 import api from '../api';
 
+/*
+* Componente que representa la página para mostrar sugerencias de match 
+*/
 function MatchPage({ user }) {
-  const [ownsProjects, setOwnsProjects] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [poseeProyectos, setPoseeProyectos] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    console.log('user from match ', user)
   if (!user?.id) return;
 
-  const checkOwnership = async () => {
+  const validarPropiedad = async () => {
     try {
       const res = await api.get('/api/projects/');
-      const userId = Number(user.id);
-      console.log('userID ', userId)
+      const usuarioId = Number(user.id);
 
-      const ownedProjects = res.data.filter(project => {
-        const creatorId = project.creator;
-        const mentorId = typeof project.mentor === 'object'
-          ? project.mentor?.id
-          : project.mentor;
-        console.log('projectId ', project.id)
-        console.log('creatorId ', creatorId)
-        console.log('mentorId ', mentorId)
-        return creatorId === userId || mentorId === userId;
+      const proyectosPoseidos = res.data.filter(proyecto => {
+        const creadorId = proyecto.creator;
+        const asesorId = typeof proyecto.mentor === 'object'
+          ? proyecto.mentor?.id
+          : proyecto.mentor;
+
+        return creadorId === usuarioId || asesorId === usuarioId;
       });
 
-      setOwnsProjects(ownedProjects.length > 0);
+      setPoseeProyectos(proyectosPoseidos.length > 0);
     } catch (err) {
-      console.error('Failed to fetch projects:', err);
-      setOwnsProjects(false);
+      console.error('Error obteniendo proyectos:', err);
+      setPoseeProyectos(false);
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
-  checkOwnership();
+  validarPropiedad();
 }, [user?.id]);
 
 
-  if (loading) {
+  if (cargando) {
     return <div className="text-center my-5">Loading...</div>;
   }
 
   return (
     <div className="container py-4">
-      {ownsProjects ? (
+      {poseeProyectos ? (
         <>
           <SuggestedUsers userType="student" />
           <hr />
