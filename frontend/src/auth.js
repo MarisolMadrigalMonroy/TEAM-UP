@@ -9,7 +9,7 @@ export const obtenerUsuarioActual = () => {
     try {
         return jwtDecode(token);
     } catch (err) {
-        console.error('Invalid token', err);
+        console.error('Token no válido', err);
         return null;
     }
 }
@@ -19,7 +19,7 @@ export const obtenerPerfilUsuario = async () => {
         const res = await api.get('/api/user/me/');
         return res.data;
     } catch (err) {
-        console.error('Failed to fetch user profile:', err);
+        console.error('Error al obtener el perfil del usuario:', err);
         return null;
     }
 };
