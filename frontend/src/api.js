@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { jwtDecode } from 'jwt-decode';
 import { ACCESS_TOKEN } from './constants'
 
 const api = axios.create({
@@ -18,7 +17,7 @@ api.interceptors.request.use(
                 }
                 config.headers.Authorization = `Bearer ${token}`
             } catch(err) {
-                console.error('Invalid token format:', err);
+                console.error('Formato de token invalido:', err);
                 localStorage.removeItem(ACCESS_TOKEN);
             }
         }
