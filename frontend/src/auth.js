@@ -14,10 +14,6 @@ export const obtenerUsuarioActual = () => {
     }
 }
 
-export const isAuthenticated = () => {
-    return !!obtenerUsuarioActual();
-}
-
 export const obtenerPerfilUsuario = async () => {
     try {
         const res = await api.get('/api/user/me/');
