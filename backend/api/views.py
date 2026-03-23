@@ -1,8 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render
-from .models import Ability, Comment, Interest, Project, User, Category, Notification
+from .models import Habilidad, Comentario, Interes, Proyecto, User, Categoria, Notificacion, InteresSobreProyecto, InteresSobreUsuario, Match
 from rest_framework import generics, viewsets, status, permissions
-from .serializers import AbilitySerializer, CommentSerializer, InterestSerializer, ProjectSerializer, UserSerializer, UserProfileSerializer, CategorySerializer
+from .serializers import HabilidadSerializer, ComentarioSerializer, InteresSerializer, ProyectoSerializer, UserSerializer, PerfilUsuarioSerializer, CategoriaSerializer, InteresSobreProyectoSerializer, InteresSobreUsuarioSerializer, NotificacionSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, BasePermission, SAFE_METHODS
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,16 +13,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
-from .utils.embedding import get_similar_students_for_project, get_similar_mentors_for_project,  get_similar_projects_for_user
+from .utils.embedding import obtener_estudiantes_similares_para_proyecto, obtener_asesores_similares_para_proyecto,  obtener_proyectos_similares_para_usuario
 from pgvector.django import VectorField
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from pgvector.django import L2Distance
 
-from .models import Project, User, ProjectMatchInterest, UserMatchInterest, ProjectMatch
-from .serializers import ProjectSerializer, ProjectMatchInterestSerializer, UserMatchInterestSerializer, NotificationSerializer
-
-class IsProjectCreatorOrMentor(permissions.BasePermission):
+class EsCreadorDeProyectoOAsesor(permissions.BasePermission):
     '''
     Clase auxiliar para conocer si un usuario es el creador o asesor de un proyecto.
     '''
@@ -31,32 +28,34 @@ class IsProjectCreatorOrMentor(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        return obj.creator == request.user or obj.mentor == request.user
+        return obj.creador == request.user or obj.asesor == request.user
 
 class IsAuthenticatedOrReadOnly(BasePermission):
     '''
     Clase auxiliar para validar si el usuario está autenticado.
     '''
+
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
             return True
         return request.user and request.user.is_authenticated
 
-class CommentViewSet(viewsets.ModelViewSet):
+class ComentarioViewSet(viewsets.ModelViewSet):
     '''
     Clase que agrupa la lógica de la API para comentarios.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    serializer_class = CommentSerializer
+
+    serializer_class = ComentarioSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Comment.objects.filter(project_id=self.kwargs['project_pk'])
+        return Comentario.objects.filter(proyecto_id=self.kwargs['proyecto_pk'])
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user, project_id=self.kwargs['project_pk'])
+        serializer.save(autor=self.request.user, proyecto_id=self.kwargs['proyecto_pk'])
 
 class CreateUserView(generics.CreateAPIView):
     '''
@@ -65,43 +64,45 @@ class CreateUserView(generics.CreateAPIView):
     Sólo incluye el verbo Http POST, ya que no queremos el resto de verbos
     durante la creación de un usuario por motivos de seguridad.
     '''
+
     queryset = User.objects.all() # Lista de todos los usuarios
     serializer_class = UserSerializer # Indicamos los datos necesarios para un usuario con la clase serializadora
     permission_classes = [AllowAny] # Todos pueden crear un usuario
 
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProyectoViewSet(viewsets.ModelViewSet):
     '''
     Clase que agrupa la lógica de la API para proyectos.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    queryset = Project.objects.all().prefetch_related('categories', 'required_abilities', 'students')
-    serializer_class = ProjectSerializer
+
+    queryset = Proyecto.objects.all().prefetch_related('categorias', 'habilidades_requeridas', 'estudiantes')
+    serializer_class = ProyectoSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
         params = self.request.query_params
 
-        search = params.get('search')
-        status_param = params.get('status')
-        category_ids = params.getlist('category')
-        ability_ids = params.getlist('ability')
+        busqueda = params.get('busqueda')
+        estado_param = params.get('estado')
+        categoria_ids = params.getlist('categoria')
+        habilidad_ids = params.getlist('habilidad')
 
-        if search:
+        if busqueda:
             queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(description__icontains=search)
+                Q(nombre__icontains=busqueda) |
+                Q(descripcion__icontains=busqueda)
             )
 
-        if category_ids:
-            queryset = queryset.filter(categories__id__in=category_ids)
+        if categoria_ids:
+            queryset = queryset.filter(categorias__id__in=categoria_ids)
 
-        if ability_ids:
-            queryset = queryset.filter(required_abilities__id__in=ability_ids)
+        if habilidad_ids:
+            queryset = queryset.filter(habilidades_requeridas__id__in=habilidad_ids)
 
-        if status_param:
-            queryset = queryset.filter(status=status_param)
+        if estado_param:
+            queryset = queryset.filter(estado=estado_param)
 
         return queryset.distinct()
 
@@ -109,24 +110,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            return [IsAuthenticated(), IsProjectCreatorOrMentor()]
+            return [IsAuthenticated(), EsCreadorDeProyectoOAsesor()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        project = serializer.save(creator=self.request.user) # Creamos el proyecto en la base de datos
-        user = self.request.user
+        proyecto = serializer.save(creador=self.request.user) # Creamos el proyecto en la base de datos
+        usuario = self.request.user
 
-        if user.is_authenticated:
-            if user.is_mentor():
-                project.mentor = user
-            elif user.is_student():
-                project.students.add(user)
-            project.save()
+        if usuario.is_authenticated:
+            if usuario.es_asesor():
+                proyecto.asesor = usuario
+            elif usuario.es_estudiante():
+                proyecto.estudiantes.add(usuario)
+            proyecto.save()
     
     def update(self, request, *args, **kwargs):
-        project = self.get_object()
+        proyecto = self.get_object()
 
-        if request.user.id != project.creator_id and request.user.id != (project.mentor_id or None):
+        if request.user.id != proyecto.creador_id and request.user.id != (proyecto.asesor_id or None):
             return Response(
                 {'detail': 'No cuentas con el permiso para actualizar este proyecto.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -134,280 +135,292 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         return super().update(request, *args, **kwargs)
 
-    @action(detail=True, methods=['post'], url_path='assign-user')
-    def assign_user(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='asignar-usuario')
+    def asignar_usuario(self, request, pk=None):
         '''
         endpoint específico para asignar un usuario a un proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico al cual
         se quiere agregar el usuario.
         '''
-        project = self.get_object()
-        user_id = request.data.get('user_id')
 
-        if not user_id:
-            return Response({'error': 'se requiere user_id.'}, status=status.HTTP_400_BAD_REQUEST)
+        proyecto = self.get_object()
+        usuario_id = request.data.get('usuario_id')
+
+        if not usuario_id:
+            return Response({'error': 'se requiere usuario_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(id=user_id, user_type=User.STUDENT)
+            usuario = User.objects.get(id=usuario_id, tipo_usuario=User.ESTUDIANTE)
         except User.DoesNotExist:
             return Response({'error': 'No se encontró el usuario.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if user.projects_as_student.exclude(id=project.id).exists():
+        if usuario.proyectos_como_estudiante.exclude(id=proyecto.id).exists():
             return Response({'error': 'El usuario ya está asignado a otro proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if project.students.count() >= 3:
+        if proyecto.estudiantes.count() >= 3:
             return Response({'error': 'El proyecto ya cuenta con 3 estudiantes.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        project.students.add(user)
-        if project.students.count() == 3:
-            project.status = 'team_complete'
-            project.save()
+        proyecto.estudiantes.add(usuario)
+        if proyecto.estudiantes.count() == 3:
+            proyecto.estado = 'equipo_completo'
+            proyecto.save()
         
-        if user.status != "enrolled":
-            user.status = "enrolled"
-            user.save(update_fields=["status"])
+        if usuario.estado != "registrado":
+            usuario.estado = "registrado"
+            usuario.save(update_fields=["estado"])
 
-        return Response({'message': f'Usuario {user.username} asignado al proyecto {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Usuario {usuario.username} asignado al proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='unassign-user')
-    def unassign_user(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='remover-usuario')
+    def remover_usuario(self, request, pk=None):
         '''
         endpoint específico para remover un usuario de un proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico del cual
         se quiere remover el usuario.
         '''
-        project = self.get_object()
-        user_id = request.data.get('user_id')
 
-        if not user_id:
-            return Response({'error': 'se requiere user_id.'}, status=status.HTTP_400_BAD_REQUEST)
+        proyecto = self.get_object()
+        usuario_id = request.data.get('usuario_id')
 
-        if request.user.id != project.creator_id and request.user.id != (project.mentor_id or None):
+        if not usuario_id:
+            return Response({'error': 'se requiere usuario_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.user.id != proyecto.creador_id and request.user.id != (proyecto.asesor_id or None):
             return Response({'error': 'Sólo el creador del proyecto o el asesor pueden remover estudiantes.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            user = User.objects.get(id=user_id, user_type=User.STUDENT)
+            usuario = User.objects.get(id=usuario_id, tipo_usuario=User.ESTUDIANTE)
         except User.DoesNotExist:
             return Response({'error': 'No se encontró el estudiante.'}, status=status.HTTP_404_NOT_FOUND)
         
-        if user.id == project.creator_id:
+        if usuario.id == proyecto.creador_id:
             return Response({'error': 'No se puede remover al creador del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
-        if project.mentor_id and user.id == project.mentor_id:
+        if proyecto.asesor_id and usuario.id == proyecto.asesor_id:
             return Response({'error': 'No se puede remover al asesor del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not project.students.filter(id=user.id).exists():
+        if not proyecto.estudiantes.filter(id=usuario.id).exists():
             return Response({'error': 'El usuario no está asignado a este proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        project.students.remove(user)
-        if project.students.count() < 3 and project.status == 'team_complete':
-            project.status = 'looking_students'
-            project.save()
+        proyecto.estudiantes.remove(usuario)
+        if proyecto.estudiantes.count() < 3 and proyecto.estado == 'equipo_completo':
+            proyecto.estado = 'buscando_estudiantes'
+            proyecto.save()
         
-        if not user.projects_as_student.exists():
-            user.status = "available"
-            user.save(update_fields=["status"])
+        if not usuario.proyectos_como_estudiante.exists():
+            usuario.estado = "disponible"
+            usuario.save(update_fields=["estado"])
 
-        return Response({'message': f'Usuario {user.username} removido del proyecto {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Usuario {usuario.username} removido del proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='assign-mentor')
-    def assign_mentor(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='asignar-asesor')
+    def asignar_asesor(self, request, pk=None):
         '''
         endpoint específico para asignar un asesor a un proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico al cual
         se quiere asignar el asesor.
         '''
-        project = self.get_object()
-        mentor_id = request.data.get('mentor_id')
 
-        if not mentor_id:
-            return Response({'error': 'Se requiere mentor_id.'}, status=status.HTTP_400_BAD_REQUEST)
+        proyecto = self.get_object()
+        asesor_id = request.data.get('asesor_id')
 
-        if project.mentor is not None:
+        if not asesor_id:
+            return Response({'error': 'Se requiere asesor_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if proyecto.asesor is not None:
             return Response(
                 {'error': 'Este proyecto ya cuenta con un asesor.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            mentor = User.objects.get(id=mentor_id, user_type=User.MENTOR)
+            asesor = User.objects.get(id=asesor_id, tipo_usuario=User.ASESOR)
         except User.DoesNotExist:
             return Response({'error': 'Asesor no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        project.mentor = mentor
-        project.save()
+        proyecto.asesor = asesor
+        proyecto.save()
 
         return Response(
-            {'message': f'Asesor {mentor.username} asignado al proyecto {project.name}.'},
+            {'message': f'Asesor {asesor.username} asignado al proyecto {proyecto.nombre}.'},
             status=status.HTTP_200_OK
         )
 
-    @action(detail=True, methods=['post'], url_path='unassign-mentor')
-    def unassign_mentor(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='remover-asesor')
+    def remover_asesor(self, request, pk=None):
         '''
         endpoint específico para remover un asesor de un proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico del cual
         se quiere remover el asesor.
         '''
-        project = self.get_object()
 
-        if not project.mentor:
+        proyecto = self.get_object()
+
+        if not proyecto.asesor:
             return Response({'error': 'Este proyecto no tiene un asesor.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        removed_mentor = project.mentor
-        project.mentor = None
-        project.save()
+        asesor_removido = proyecto.asesor
+        proyecto.asesor = None
+        proyecto.save()
 
-        return Response({'message': f'Asesor {removed_mentor.username} removido del proyecto {project.name}.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Asesor {asesor_removido.username} removido del proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['get'], url_path='matched-users')
-    def matched_users(self, request, pk=None):
+    @action(detail=True, methods=['get'], url_path='usuarios-emparejados')
+    def usuarios_emparejados(self, request, pk=None):
         '''
         endpoint específico para obtener los usuarios que hicieron match con el proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico del cual
         se quieren obtener usuarios con un match.
         '''
-        project = self.get_object()
+
+        proyecto = self.get_object()
 
         # Usuarios a los que les gusta el proyecto
-        student_likes = ProjectMatchInterest.objects.filter(
-            project=project,
-            liked=True
-        ).values_list('user_id', flat=True)
+        likes_estudiante = InteresSobreProyecto.objects.filter(
+            proyecto=proyecto,
+            gustado=True
+        ).values_list('usuario_id', flat=True)
 
         # Likes mutuos. Usuarios a los que se les dió like desde el proyecto y que son parte de la lista anterior
-        mutual_students = UserMatchInterest.objects.filter(
-            project=project,
-            liked=True,
-            user_id__in=student_likes
-        ).select_related('user')
+        estudiantes_mutuos = InteresSobreUsuario.objects.filter(
+            proyecto=proyecto,
+            gustado=True,
+            usuario_id__in=likes_estudiante
+        ).select_related('usuario')
 
-        users_data = []
+        datos_usuarios = []
         # Para cada usuario con match se incluyen sus datos y si ya es parte de este proyecto o de otro
-        for umi in mutual_students:
-            user = umi.user
-            assigned = False
-            already_enrolled = False
-            if project.students.filter(id=user.id).exists():
-                assigned = True
-            elif user.projects_as_student.exclude(id=project.id).exists():
-                already_enrolled = True
-            print(f'{assigned} {already_enrolled}')
-            users_data.append({
-                'id': user.id,
-                'username': user.username,
-                'bio': getattr(user, 'bio', ''),
-                'status': getattr(user, 'status', ''),
-                'assigned': assigned,
-                'already_enrolled_in_other_project': already_enrolled
+        for umi in estudiantes_mutuos:
+            usuario = umi.usuario
+            asignado = False
+            registrado_previamente = False
+            if proyecto.estudiantes.filter(id=usuario.id).exists():
+                asignado = True
+            elif usuario.proyectos_como_estudiante.exclude(id=proyecto.id).exists():
+                registrado_previamente = True
+
+            datos_usuarios.append({
+                'id': usuario.id,
+                'username': usuario.username,
+                'bio': getattr(usuario, 'bio', ''),
+                'estado': getattr(usuario, 'estado', ''),
+                'asignado': asignado,
+                'registrado_previamente_en_otro_proyecto': registrado_previamente,
+                'tipo_usuario': usuario.tipo_usuario
             })
 
-        return Response(users_data, status=status.HTTP_200_OK)
+        return Response(datos_usuarios, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['get'], url_path='matched-mentors')
-    def matched_mentors(self, request, pk=None):
+    @action(detail=True, methods=['get'], url_path='asesores-emparejados')
+    def asesores_emparejados(self, request, pk=None):
         '''
         endpoint específico para obtener los asesores que hicieron match con el proyecto.
 
         detail=True significa que la url debe incluir el proyecto especifico del cual
         se quieren obtener asesores con un match.
         '''
-        project = self.get_object()
+
+        proyecto = self.get_object()
 
         # Asesores a los que les gusta el proyecto
-        mentor_likes = ProjectMatchInterest.objects.filter(
-            project=project,
-            liked=True,
-            user__user_type=User.MENTOR
-        ).values_list('user_id', flat=True)
+        likes_asesor = InteresSobreProyecto.objects.filter(
+            proyecto=proyecto,
+            gustado=True,
+            usuario__tipo_usuario=User.ASESOR
+        ).values_list('usuario_id', flat=True)
 
         # Likes mutuos. Asesores a los que se les dió like desde el proyecto y que son parte de la lista anterior
-        mutual_mentors = UserMatchInterest.objects.filter(
-            project=project,
-            liked=True,
-            user_id__in=mentor_likes
-        ).select_related('user')
+        asesores_mutuos = InteresSobreUsuario.objects.filter(
+            proyecto=proyecto,
+            gustado=True,
+            usuario_id__in=likes_asesor
+        ).select_related('usuario')
 
-        mentors_data = []
-        for umi in mutual_mentors:
-            mentor = umi.user
-            assigned = False
+        datos_asesores = []
+        for umi in asesores_mutuos:
+            asesor = umi.usuario
+            asignado = False
 
-            if project.mentor and project.mentor.id == mentor.id:
-                assigned = True
+            if proyecto.asesor and proyecto.asesor.id == asesor.id:
+                asignado = True
 
-            mentors_data.append({
-                'id': mentor.id,
-                'username': mentor.username,
-                'bio': getattr(mentor, 'bio', ''),
-                'status': getattr(mentor, 'status', ''),
-                'assigned': assigned,
+            datos_asesores.append({
+                'id': asesor.id,
+                'username': asesor.username,
+                'bio': getattr(asesor, 'bio', ''),
+                'estado': getattr(asesor, 'estado', ''),
+                'asignado': asignado,
+                'tipo_usuario': asesor.tipo_usuario
             })
 
-        return Response(mentors_data, status=status.HTTP_200_OK)
+        return Response(datos_asesores, status=status.HTTP_200_OK)
     
-class InterestViewSet(viewsets.ModelViewSet):
+class InteresViewSet(viewsets.ModelViewSet):
     '''
     Clase que agrupa la lógica de la API para intereses.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    queryset = Interest.objects.all()
-    serializer_class = InterestSerializer
+
+    queryset = Interes.objects.all()
+    serializer_class = InteresSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     # Permite buscar intereses por nombre
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
-        'name': ['icontains'],
+        'nombre': ['icontains'],
     }
 
-class AbilityViewSet(viewsets.ModelViewSet):
+class HabilidadViewSet(viewsets.ModelViewSet):
     '''
     Clase que agrupa la lógica de la API para habilidades.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    queryset = Ability.objects.all()
-    serializer_class = AbilitySerializer
+
+    queryset = Habilidad.objects.all()
+    serializer_class = HabilidadSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     # Permite buscar habilidades por nombre
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
-        'name': ['icontains'],
+        'nombre': ['icontains'],
     }
 
 class UserMeView(APIView):
     '''
     Clase que representa la sesión del usuario autenticado. Se utiliza para el perfil del usuario.
     '''
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserProfileSerializer(request.user)
+        serializer = PerfilUsuarioSerializer(request.user)
         return Response(serializer.data)
 
     def put(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        serializer = PerfilUsuarioSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoriaViewSet(viewsets.ModelViewSet):
     '''
-    Clase que agrupa la lógica de la API para habilidades.
+    Clase que agrupa la lógica de la API para categorias.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
     permission_classes = [AllowAny]
 
 class MatchViewSet(viewsets.ViewSet):
@@ -417,299 +430,307 @@ class MatchViewSet(viewsets.ViewSet):
 
     ViewSet permite crear rutas para endpoints e implementar acciones con @action.
     '''
+
     permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['post'], url_path='like-project')
-    def like_project(self, request):
+    @action(detail=False, methods=['post'], url_path='like-proyecto')
+    def like_proyecto(self, request):
         '''
         endpoint específico para indicar que a un usuario le da me gusta a un proyecto.
 
         detail=False significa que la url no debe incluir el proyecto especifico
         al cual se le da me gusta.
         '''
-        serializer = ProjectMatchInterestSerializer(data=request.data)
+
+        serializer = InteresSobreProyectoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        project = serializer.validated_data['project']
-        liked = serializer.validated_data['liked']
-        user = request.user
+        proyecto = serializer.validated_data['proyecto']
+        gustado = serializer.validated_data['gustado']
+        usuario = request.user
 
-        if project.creator_id == user.id:
+        if proyecto.creador_id == usuario.id:
             return Response(
                 {"detail": "Los creadores no pueden dar like a sus proyectos."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if user.user_type == "student" and user.projects_as_student.exists():
+        if usuario.tipo_usuario == "estudiante" and usuario.proyectos_como_estudiante.exists():
             return Response(
                 {"detail": "Estudiantes registrados en un proyecto no pueden darle me gusta a otros proyectos."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        interest, created = ProjectMatchInterest.objects.update_or_create(
-            user=user,
-            project=project,
-            defaults={'liked': liked}
+        interes, creado = InteresSobreProyecto.objects.update_or_create(
+            usuario=usuario,
+            proyecto=proyecto,
+            defaults={'gustado': gustado}
         )
 
-        matched = False
-        match_with = None
+        emparejado = False
+        emparejado_con = None
 
         # Si el usuario le dio me gusta al proyecto
-        if liked:
-            reciprocal = UserMatchInterest.objects.filter(
-                project=project,
-                user=user,
-                liked=True
+        if gustado:
+            reciproco = InteresSobreUsuario.objects.filter(
+                proyecto=proyecto,
+                usuario=usuario,
+                gustado=True
             ).exists()
 
             # Si desde el proyecto se le había dado me gusta al usuario
-            if reciprocal:
-                ProjectMatch.objects.get_or_create(user=user, project=project)
-                matched = True
+            if reciproco:
+                Match.objects.get_or_create(usuario=usuario, proyecto=proyecto)
+                emparejado = True
 
                 # Obtenemos el asesor o creador a quien se le dará la notificación
-                recipient = project.mentor or project.creator
-                if recipient:
+                receptor = proyecto.asesor or proyecto.creador
+                if receptor:
                     # Se crea la notificación
-                    Notification.objects.create(
-                        recipient=recipient,
-                        message=f"¡Hiciste match con '{user.username}' en el proyecto '{project.name}'!",
-                        related_project=project
+                    Notificacion.objects.create(
+                        receptor=receptor,
+                        mensaje=f"¡Hiciste match con '{usuario.username}' en el proyecto '{proyecto.nombre}'!",
+                        proyecto_relacionado=proyecto
                     )
-                    match_with = recipient.username
+                    emparejado_con = receptor.username
 
                 # Se crea la notificación para el usuario
-                Notification.objects.create(
-                    recipient=user,
-                    message=f"¡Hiciste match con el proyecto '{project.name}'!",
-                    related_project=project
+                Notificacion.objects.create(
+                    receptor=usuario,
+                    mensaje=f"¡Hiciste match con el proyecto '{proyecto.nombre}'!",
+                    proyecto_relacionado=proyecto
                 )
 
         return Response({
-            **ProjectMatchInterestSerializer(interest).data,
-            'matched': matched,
-            'match_with': match_with,
-            'project_id': project.id
+            **InteresSobreProyectoSerializer(interes).data,
+            'emparejado': emparejado,
+            'emparejado_con': emparejado_con,
+            'proyecto_id': proyecto.id
         }, status=status.HTTP_200_OK)
 
 
-    @action(detail=False, methods=['post'], url_path='dislike-project')
-    def dislike_project(self, request):
+    @action(detail=False, methods=['post'], url_path='dislike-proyecto')
+    def dislike_proyecto(self, request):
         '''
         endpoint específico para indicar que a un usuario le da no me gusta a un proyecto.
 
         detail=False significa que la url no debe incluir el proyecto especifico
         al cual se le da no me gusta.
         '''
-        serializer = ProjectMatchInterestSerializer(data=request.data)
+
+        serializer = InteresSobreProyectoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        project = serializer.validated_data['project']
-        liked = serializer.validated_data['liked']
-        user = request.user
+        proyecto = serializer.validated_data['proyecto']
+        gustado = serializer.validated_data['gustado']
+        usuario = request.user
 
-        ProjectMatchInterest.objects.update_or_create(
-            user=user,
-            project=project,
-            defaults={'liked': liked}
+        InteresSobreProyecto.objects.update_or_create(
+            usuario=usuario,
+            proyecto=proyecto,
+            defaults={'gustado': gustado}
         )
 
         return Response({'status': 'Se dió no me gusta al proyecto'})
 
-    @action(detail=False, methods=['post'], url_path='like-user')
-    def like_user(self, request):
+    @action(detail=False, methods=['post'], url_path='like-usuario')
+    def like_usuario(self, request):
         '''
         endpoint específico para indicar que desde un proyecto se le da me gusta a un usuario.
 
         detail=False significa que la url no debe incluir el usuario especifico
         al cual se le da me gusta.
         '''
-        serializer = UserMatchInterestSerializer(data=request.data)
+
+        serializer = InteresSobreUsuarioSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_to_like = serializer.validated_data['user']
-        project = serializer.validated_data['project']
-        liked = serializer.validated_data['liked']
-        acting_user = request.user
+        usuario_por_gustar = serializer.validated_data['usuario']
+        proyecto = serializer.validated_data['proyecto']
+        gustado = serializer.validated_data['gustado']
+        usuario_actual = request.user
 
 
-        if not project:
+        if not proyecto:
             return Response({'detail': 'No se encontró el proyecto.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if acting_user != project.creator and acting_user != project.mentor:
+        if usuario_actual != proyecto.creador and usuario_actual != proyecto.asesor:
             return Response({'detail': 'No cuentas con permisos para este proyecto.'}, status=status.HTTP_403_FORBIDDEN)
 
-        if user_to_like == acting_user:
+        if usuario_por_gustar == usuario_actual:
             return Response({'detail': 'No puedes dar me gusta a ti mismo.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if project.students.filter(id=user_to_like.id).exists() or project.mentor_id == user_to_like.id:
+        if proyecto.estudiantes.filter(id=usuario_por_gustar.id).exists() or proyecto.asesor_id == usuario_por_gustar.id:
             return Response({'detail': 'El usuario ya es parte de este proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        interest, created = UserMatchInterest.objects.update_or_create(
-            project=project,
-            user=user_to_like,
-            defaults={'liked': liked}
+        interes, creado = InteresSobreUsuario.objects.update_or_create(
+            proyecto=proyecto,
+            usuario=usuario_por_gustar,
+            defaults={'gustado': gustado}
         )
 
-        matched = False
-        match_with = None
+        emparejado = False
+        emparejado_con = None
 
         # Si desde el proyecto se le dió me gusta al usuario
-        if liked:
-            reciprocal = ProjectMatchInterest.objects.filter(
-                user=user_to_like,
-                project=project,
-                liked=True
+        if gustado:
+            reciproco = InteresSobreProyecto.objects.filter(
+                usuario=usuario_por_gustar,
+                proyecto=proyecto,
+                gustado=True
             ).exists()
 
-            if reciprocal:
-                ProjectMatch.objects.get_or_create(user=user_to_like, project=project)
-                matched = True
-                match_with = user_to_like.username
+            if reciproco:
+                Match.objects.get_or_create(usuario=usuario_por_gustar, proyecto=proyecto)
+                emparejado = True
+                emparejado_con = usuario_por_gustar.username
 
                 # Se crea la notificación para el usuario
-                Notification.objects.create(
-                    recipient=user_to_like,
-                    message=f"¡Hiciste match con el proyecto '{project.name}'!",
-                    related_project=project
+                Notificacion.objects.create(
+                    receptor=usuario_por_gustar,
+                    mensaje=f"¡Hiciste match con el proyecto '{proyecto.nombre}'!",
+                    proyecto_relacionado=proyecto
                 )
 
                 # Se crea la notificación para el creador o asesor del proyecto
-                Notification.objects.create(
-                    recipient=acting_user,
-                    message=f"¡Hiciste match con '{user_to_like.username}' en el proyecto '{project.name}'!",
-                    related_project=project
+                Notificacion.objects.create(
+                    receptor=usuario_actual,
+                    mensaje=f"¡Hiciste match con '{usuario_por_gustar.username}' en el proyecto '{proyecto.nombre}'!",
+                    proyecto_relacionado=proyecto
                 )
 
         return Response({
-            **UserMatchInterestSerializer(interest).data,
-            'matched': matched,
-            'match_with': match_with,
-            'project_id': project.id
+            **InteresSobreUsuarioSerializer(interes).data,
+            'emparejado': emparejado,
+            'emparejado_con': emparejado_con,
+            'proyecto_id': proyecto.id
         }, status=status.HTTP_200_OK)
 
 
-    @action(detail=False, methods=['post'], url_path='dislike-user')
-    def dislike_user(self, request):
+    @action(detail=False, methods=['post'], url_path='dislike-usuario')
+    def dislike_usuario(self, request):
         '''
         endpoint específico para indicar que desde un proyecto se le da no me gusta a un usuario.
 
         detail=False significa que la url no debe incluir el usuario especifico
         al cual se le da no me gusta.
         '''
-        serializer = UserMatchInterestSerializer(data=request.data)
+        serializer = InteresSobreUsuarioSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_to_dislike = serializer.validated_data['user']
-        project = serializer.validated_data['project']
-        liked = serializer.validated_data['liked']
+        usuario_por_disgustar = serializer.validated_data['usuario']
+        proyecto = serializer.validated_data['proyecto']
+        gustado = serializer.validated_data['gustado']
 
-        if not project:
+        if not proyecto:
             return Response({'detail': 'Proyecto no encontrado.'}, status=404)
 
-        acting_user = request.user
+        usuario_actual = request.user
 
-        if acting_user != project.creator and acting_user != project.mentor:
+        if usuario_actual != proyecto.creador and usuario_actual != proyecto.asesor:
             return Response({'detail': 'No cuentas con permisos para este proyecto.'}, status=403)
 
-        interest, created = UserMatchInterest.objects.update_or_create(
-            project=project,
-            user=user_to_dislike,
-            defaults={'liked': liked}
+        interest, created = InteresSobreUsuario.objects.update_or_create(
+            proyecto=proyecto,
+            usuario=usuario_por_disgustar,
+            defaults={'gustado': gustado}
         )
 
         return Response({'status': 'Se dió no me gusta al proyecto'})
     
-    @action(detail=False, methods=['get'], url_path='ai-suggested-users')
-    def ai_suggested_users(self, request):
+    @action(detail=False, methods=['get'], url_path='ai-usuarios-sugeridos')
+    def ai_usuarios_sugeridos(self, request):
         '''
         endpoint específico para obtener sugerencias de usuarios con inteligencia artificial.
 
         detail=False significa que la url no debe incluir el proyecto especifico
         al cual se le sugieren usuarios.
         '''
-        user = request.user
-        project_id = request.query_params.get('project_id')
-        user_type = request.query_params.get('user_type', 'student')
 
-        if not project_id:
-            return Response({'detail': 'Falta el parámetro project_id.'}, status=status.HTTP_400_BAD_REQUEST)
+        usuario = request.user
+        proyecto_id = request.query_params.get('proyecto_id')
+        tipo_usuario = request.query_params.get('tipo_usuario', 'estudiante')
 
-        project = get_object_or_404(Project, id=project_id)
+        if not proyecto_id:
+            return Response({'detail': 'Falta el parámetro proyecto_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if project.creator != user and project.mentor != user:
+        proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+
+        if proyecto.creador != usuario and proyecto.asesor != usuario:
             return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
-        if user_type == "mentor" and project.mentor_id:
+        if tipo_usuario == "asesor" and proyecto.asesor_id:
             return Response([], status=status.HTTP_200_OK)
 
-        if user_type == "student":
+        if tipo_usuario == "estudiante":
             # Obtenemos estudiantes afines al proyecto
-            users = get_similar_students_for_project(project)
-        elif user_type == "mentor":
+            usuarios = obtener_estudiantes_similares_para_proyecto(proyecto)
+        elif tipo_usuario == "asesor":
             # Obtenemos asesores afines al proyecto
-            users = get_similar_mentors_for_project(project)
+            usuarios = obtener_asesores_similares_para_proyecto(proyecto)
         else:
-            return Response({'detail': 'user_type no válido.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'tipo_usuario no válido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(UserSerializer(users, many=True).data)
+        return Response(UserSerializer(usuarios, many=True).data)
 
-    @action(detail=False, methods=['get'], url_path='ai-suggested-projects')
-    def ai_suggested_projects(self, request):
+    @action(detail=False, methods=['get'], url_path='ai-proyectos-sugeridos')
+    def ai_proyectos_sugeridos(self, request):
         '''
         endpoint específico para obtener sugerencias de proyectos con inteligencia artificial.
 
         detail=False significa que la url no debe incluir el usuario especifico
         al cual se le sugieren proyectos.
         '''
-        user = request.user
 
-        if not (user.is_student() or user.is_mentor()):
+        usuario = request.user
+
+        if not (usuario.es_estudiante() or usuario.es_asesor()):
             return Response(
                 {'detail': 'Sólo estudiantes y asesores pueden recibir sugerencias.'},
                 status=403
             )
 
         # Obtenemos proyectos afines al usuario
-        projects = get_similar_projects_for_user(user)
+        proyectos = obtener_proyectos_similares_para_usuario(usuario)
 
         # Si el usuario es asesor, se le muestran proyectos sin asesor
-        if user.is_mentor():
-            projects = [p for p in projects if p.mentor is None]
+        if usuario.es_asesor():
+            proyectos = [p for p in proyectos if p.asesor is None]
 
-        serializer = ProjectSerializer(
-            projects,
+        serializer = ProyectoSerializer(
+            proyectos,
             many=True,
             context={"request": request}
         )
         return Response(serializer.data)
 
-class NotificationViewSet(viewsets.ModelViewSet):
+class NotificacionViewSet(viewsets.ModelViewSet):
     '''
     Clase que agrupa la lógica de la API para notificaciones.
 
     Los verbos Http (GET, POST, PUT, DELETE) están incluidos y son manejados
     por Django REST Framework.
     '''
-    serializer_class = NotificationSerializer
+
+    serializer_class = NotificacionSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
+        return Notificacion.objects.filter(receptor=self.request.user).order_by('-creado_en')
 
-    @action(detail=True, methods=['post'], url_path='mark-read')
-    def mark_read(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='marcar-leido')
+    def marcar_leido(self, request, pk=None):
         '''
         endpoint específico para marcar una notificación como leída.
 
         detail=True significa que la url debe incluir la notificación especifica
         que será marcada como leída.
         '''
+        
         try:
-            notification = self.get_object()
-            notification.is_read = True
-            notification.save()
+            notificacion = self.get_object()
+            notificacion.leido = True
+            notificacion.save()
             return Response({'status': 'marcada como leída'})
         except:
             return Response({'error': 'Notificación no encontrada'}, status=404)

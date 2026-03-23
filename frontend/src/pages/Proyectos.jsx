@@ -5,7 +5,7 @@ import api from '../api';
 /*
 * Componente que representa la página para mostrar proyectos 
 */
-function ProjectsPage() {
+function PaginaProyectos() {
   const [proyectos, setProyectos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [categorias, setCategorias] = useState([]);
@@ -20,12 +20,12 @@ function ProjectsPage() {
 
   const OPCIONES_ESTADO = [
     { value: '', label: 'Todos los Estados' },
-    { value: 'looking_students', label: 'Buscando Estudiantes' },
-    { value: 'team_complete', label: 'Equipo Completo' },
-    { value: 'looking_mentor', label: 'Buscando Asesor' },
-    { value: 'in_progress', label: 'En Desarrollo' },
-    { value: 'completed', label: 'Completo' },
-    { value: 'cancelled', label: 'Cancelado' },
+    { value: 'buscando_estudiantes', label: 'Buscando Estudiantes' },
+    { value: 'equipo_completo', label: 'Equipo Completo' },
+    { value: 'buscando_asesor', label: 'Buscando Asesor' },
+    { value: 'en_progreso', label: 'En Progreso' },
+    { value: 'terminado', label: 'Terminado' },
+    { value: 'cancelado', label: 'Cancelado' },
   ];
 
   useEffect(() => {
@@ -33,8 +33,8 @@ function ProjectsPage() {
     const obtenerFiltros = async () => {
       try {
         const [catRes, habRes] = await Promise.all([
-          api.get('/api/categories/'),
-          api.get('/api/abilities/')
+          api.get('/api/categorias/'),
+          api.get('/api/habilidades/')
         ]);
 
         setCategorias(catRes.data);
@@ -52,12 +52,12 @@ function ProjectsPage() {
     const obtenerProyectos = async () => {
       try {
         const parametros = new URLSearchParams();
-        if (busqueda) parametros.append('search', busqueda);
-        categoriasSeleccionadas.forEach(cat => parametros.append('category', cat));
-        habilidadesSeleccionadas.forEach(ab => parametros.append('ability', ab));
-        if (estadoSeleccionado) parametros.append('status', estadoSeleccionado);
+        if (busqueda) parametros.append('busqueda', busqueda);
+        categoriasSeleccionadas.forEach(cat => parametros.append('categoria', cat));
+        habilidadesSeleccionadas.forEach(hab => parametros.append('habilidad', hab));
+        if (estadoSeleccionado) parametros.append('estado', estadoSeleccionado);
 
-        const res = await api.get(`/api/projects/?${parametros.toString()}`);
+        const res = await api.get(`/api/proyectos/?${parametros.toString()}`);
         setProyectos(res.data);
       } catch (err) {
         console.error('Error obteniendo proyectos:', err);
@@ -109,7 +109,7 @@ function ProjectsPage() {
                 <Form.Check
                   key={cat.id}
                   type="checkbox"
-                  label={cat.name}
+                  label={cat.nombre}
                   checked={categoriasSeleccionadas.includes(cat.id)}
                   onChange={() => handleCheckboxChange(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
                 />
@@ -118,13 +118,13 @@ function ProjectsPage() {
 
             <Form.Group className="mb-3">
               <Form.Label>Habilidades Requeridas</Form.Label>
-              {listaHabilidades.map(ab => (
+              {listaHabilidades.map(hab => (
                 <Form.Check
-                  key={ab.id}
+                  key={hab.id}
                   type="checkbox"
-                  label={ab.name}
-                  checked={habilidadesSeleccionadas.includes(ab.id)}
-                  onChange={() => handleCheckboxChange(ab.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
+                  label={hab.nombre}
+                  checked={habilidadesSeleccionadas.includes(hab.id)}
+                  onChange={() => handleCheckboxChange(hab.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
                 />
               ))}
             </Form.Group>
@@ -138,9 +138,9 @@ function ProjectsPage() {
               <Col md={6} lg={4} key={proy.id} className="mb-4">
                 <Card>
                   <Card.Body>
-                    <Card.Title>{proy.name}</Card.Title>
-                    <Card.Text>{proy.description.slice(0, 120)}...</Card.Text>
-                    <Button href={`/projects/${proy.id}`} variant="primary">
+                    <Card.Title>{proy.nombre}</Card.Title>
+                    <Card.Text>{proy.descripcion.slice(0, 120)}...</Card.Text>
+                    <Button href={`/proyectos/${proy.id}`} variant="primary">
                       Ver Proyecto
                     </Button>
                   </Card.Body>
@@ -154,4 +154,4 @@ function ProjectsPage() {
   );
 }
 
-export default ProjectsPage;
+export default PaginaProyectos;

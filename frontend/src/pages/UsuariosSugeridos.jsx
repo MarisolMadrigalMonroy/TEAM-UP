@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 /*
 * Componente que representa sugerencias de usuarios
 */
-function SuggestedUsers({ userType = 'student' }) {
+function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
   const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [proyectosActivos, setProyectosActivos] = useState([]);
@@ -18,10 +18,10 @@ function SuggestedUsers({ userType = 'student' }) {
     // Función para obtener los proyectos del usuario
     const obtenerProyectosDeUsuario = async () => {
       try {
-        const res = await api.get('/api/projects/');
+        const res = await api.get('/api/proyectos/');
         const poseidos = res.data.filter(p => {
-          const asesorId = typeof p.mentor === 'object' ? p.mentor?.id : p.mentor;
-          return p.creator === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
+          const asesorId = typeof p.asesor === 'object' ? p.asesor?.id : p.asesor;
+          return p.creador === usuarioActual?.usuario_id || asesorId === usuarioActual?.usuario_id;
         });
 
         setProyectosActivos(poseidos);
@@ -35,7 +35,7 @@ function SuggestedUsers({ userType = 'student' }) {
     };
 
     obtenerProyectosDeUsuario();
-  }, [usuarioActual?.user_id]);
+  }, [usuarioActual?.usuario_id]);
 
   useEffect(() => {
     const obtenerSugerencias = async () => {
@@ -43,8 +43,8 @@ function SuggestedUsers({ userType = 'student' }) {
 
       setCargando(true);
       try {
-        const res = await api.get('/api/match/ai-suggested-users/', {
-          params: { project_id: proyectoSeleccionado, user_type: userType }
+        const res = await api.get('/api/match/ai-usuarios-sugeridos/', {
+          params: { proyecto_id: proyectoSeleccionado, tipo_usuario: tipoUsuario }
         });
         setUsuariosSugeridos(res.data);
       } catch (err) {
@@ -55,7 +55,7 @@ function SuggestedUsers({ userType = 'student' }) {
     };
 
     obtenerSugerencias();
-  }, [proyectoSeleccionado, userType]);
+  }, [proyectoSeleccionado, tipoUsuario]);
 
   const handleLike = async (usuarioId) => {
     if (!proyectoSeleccionado) {
@@ -63,13 +63,13 @@ function SuggestedUsers({ userType = 'student' }) {
       return;
     }
     try {
-      const res = await api.post('/api/match/like-user/', {
-        user: usuarioId,
-        project: proyectoSeleccionado,
-        liked: true
+      const res = await api.post('/api/match/like-usuario/', {
+        usuario: usuarioId,
+        proyecto: proyectoSeleccionado,
+        gustado: true
       });
-      if (res.data.matched && res.data.match_with) {
-        toast.success(`🎉 Hiciste match con ${res.data.match_with}!`);
+      if (res.data.emparejado && res.data.emparejado_con) {
+        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
       }
       setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
     } catch (err) {
@@ -83,10 +83,10 @@ function SuggestedUsers({ userType = 'student' }) {
       return;
     }
     try {
-      await api.post('/api/match/dislike-user/', {
-        user: usuarioId,
-        project: proyectoSeleccionado,
-        liked: false
+      await api.post('/api/match/dislike-usuario/', {
+        usuario: usuarioId,
+        proyecto: proyectoSeleccionado,
+        gustado: false
       });
       setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
     } catch (err) {
@@ -101,13 +101,13 @@ function SuggestedUsers({ userType = 'student' }) {
   const canLikeOrDislike = useMemo(() => {
     if (!proyectoSeleccionadoObj || !usuarioActual) return false;
 
-    const creadorId = proyectoSeleccionadoObj.creator;
+    const creadorId = proyectoSeleccionadoObj.creador;
     const asesorId =
-      typeof proyectoSeleccionadoObj.mentor === 'object'
-        ? proyectoSeleccionadoObj.mentor?.id
-        : proyectoSeleccionadoObj.mentor;
+      typeof proyectoSeleccionadoObj.asesor === 'object'
+        ? proyectoSeleccionadoObj.asesor?.id
+        : proyectoSeleccionadoObj.asesor;
 
-    return creadorId === usuarioActual.user_id || asesorId === usuarioActual.user_id;
+    return creadorId === usuarioActual.usuario_id || asesorId === usuarioActual.usuario_id;
   }, [proyectoSeleccionadoObj, usuarioActual]);
 
   if (cargando) {
@@ -121,7 +121,7 @@ function SuggestedUsers({ userType = 'student' }) {
   return (
     <Container className="py-4">
       <h2 className="mb-4">
-        Sugerencias de {userType === 'mentor' ? 'Asesores' : 'Estudiantes'}
+        Sugerencias de {tipoUsuario === 'asesor' ? 'Asesores' : 'Estudiantes'}
       </h2>
 
       {proyectosActivos.length > 0 && (
@@ -133,7 +133,7 @@ function SuggestedUsers({ userType = 'student' }) {
           >
             <option value=''>-- Selecciona un Proyecto --</option>
             {proyectosActivos.map(proj => (
-              <option key={proj.id} value={proj.id}>{proj.name}</option>
+              <option key={proj.id} value={proj.id}>{proj.nombre}</option>
             ))}
           </Form.Select>
         </Form.Group>
@@ -141,13 +141,13 @@ function SuggestedUsers({ userType = 'student' }) {
 
       {!proyectoSeleccionado && (
         <Alert variant="warning">
-          Por favor selecciona un proyecto para ver sugerencias de {userType === 'mentor' ? 'asesores' : 'estudiantes'}.
+          Por favor selecciona un proyecto para ver sugerencias de {tipoUsuario === 'asesor' ? 'asesores' : 'estudiantes'}.
         </Alert>
       )}
 
       {proyectoSeleccionado && usuariosSugeridos.length === 0 && (
         <Alert variant="info">
-          No hay sugerencias de {userType === 'mentor' ? 'asesores' : 'estudiantes'}.
+          No hay sugerencias de {tipoUsuario === 'asesor' ? 'asesores' : 'estudiantes'}.
         </Alert>
       )}
 
@@ -156,7 +156,7 @@ function SuggestedUsers({ userType = 'student' }) {
           <Col key={usuario.id}>
             <Card className="h-100">
               <Card.Body>
-                <Card.Title>{usuario.usuarioname}</Card.Title>
+                <Card.Title>{usuario.username}</Card.Title>
                 <Card.Text>Bio: {usuario.bio}</Card.Text>
 
                 {canLikeOrDislike && (
@@ -174,4 +174,4 @@ function SuggestedUsers({ userType = 'student' }) {
   );
 }
 
-export default SuggestedUsers;
+export default UsuariosSugeridos;

@@ -5,7 +5,7 @@ import api from '../api';
 /*
 * Componente que representa la página de estudiantes con match 
 */
-export default function MatchedUsers() {
+export default function UsuariosEmparejados() {
   const { id } = useParams();
   const [estudiantesConMatch, setEstudiantesConMatch] = useState([]);
   const [proyecto, setProyecto] = useState(null);
@@ -19,12 +19,12 @@ export default function MatchedUsers() {
     setCargando(true);
     try {
       const [proyRes, usuarioRes] = await Promise.all([
-        api.get(`/api/projects/${id}/`),
-        api.get(`/api/projects/${id}/matched-users/`)
+        api.get(`/api/proyectos/${id}/`),
+        api.get(`/api/proyectos/${id}/usuarios-emparejados/`)
       ]);
 
       const soloEstudiantes = usuarioRes.data.filter(
-        usuario => usuario.user_type === "student"
+        usuario => usuario.tipo_usuario === "estudiante"
       );
 
       setProyecto(proyRes.data);
@@ -38,7 +38,7 @@ export default function MatchedUsers() {
 
   const handleAccept = async (usuarioId) => {
     try {
-      await api.post(`/api/projects/${id}/assign-user/`, { user_id: usuarioId });
+      await api.post(`/api/proyectos/${id}/asignar-usuario/`, { usuario_id: usuarioId });
       await obtenerDatos();
       alert("¡Usuario agregado!");
     } catch (err) {
@@ -49,7 +49,7 @@ export default function MatchedUsers() {
 
   if (cargando) return <p>Cargando matches...</p>;
 
-  const proyectoLleno = proyecto?.students?.length >= 3;
+  const proyectoLleno = proyecto?.estudiantes?.length >= 3;
 
   return (
     <div className="container">
@@ -60,18 +60,18 @@ export default function MatchedUsers() {
         <ul>
           {estudiantesConMatch.map((usuario) => (
             <li key={usuario.id} style={{ marginBottom: "10px" }}>
-              <strong>{usuario.username}</strong> — {usuario.status || "Sin estado"}
+              <strong>{usuario.username}</strong> — {usuario.estado || "Sin estado"}
               <br />
               {usuario.bio && <em>{usuario.bio}</em>}
               <br />
-              {usuario.assigned ? (
+              {usuario.asignado ? (
                 <span className="badge bg-success">Aceptado</span>
-              ) : usuario.already_enrolled_in_other_project ? (
+              ) : usuario.registrado_previamente_en_otro_proyecto ? (
                 <span className="badge bg-secondary">Aceptado en otro proyecto</span>
               ) : proyectoLleno ? (
                 <span className="badge bg-warning text-dark">Equipo completo</span>
               ) : (
-                <button onClick={() => handleAccept(usuario.id)}>Aceptar</button>
+                <button className="btn btn-outline-success mt-2 w-10" onClick={() => handleAccept(usuario.id)}>Aceptar</button>
               )}
             </li>
           ))}

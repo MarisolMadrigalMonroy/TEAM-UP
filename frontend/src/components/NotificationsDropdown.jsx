@@ -15,7 +15,7 @@ function NotificationsDropdown() {
   useEffect(() => {
     const obtenerNotificaciones = async () => {
       try {
-        const res = await api.get('/api/notifications/?limit=5');
+        const res = await api.get('/api/notificaciones/?limit=5');
 
         // Si la respuesta de la API tiene notificaciones las guardamos, sino usamos una lista vacía
         setNotificaciones(Array.isArray(res.data) ? res.data : []);
@@ -30,17 +30,17 @@ function NotificationsDropdown() {
     obtenerNotificaciones();
   }, []);
 
-  const sinLeer = notificaciones.filter(n => !n.is_read).length;
+  const sinLeer = notificaciones.filter(n => !n.leido).length;
 
   const handleNotificationClick = async (notificacion) => {
     /* Función para controlar clicks en notificaciones */
-    if (!notificacion.is_read) {
+    if (!notificacion.leido) {
       /* Si la notificación no ha sido leída, la intentamos marcar como leída */
       try {
-        await api.post(`/api/notifications/${notificacion.id}/mark-read/`);
+        await api.post(`/api/notificaciones/${notificacion.id}/marcar-leido/`);
         setNotificaciones(prev =>
           prev.map(n =>
-            n.id === notificacion.id ? { ...n, is_read: true } : n
+            n.id === notificacion.id ? { ...n, leido: true } : n
           )
         );
       } catch (err) {
@@ -48,9 +48,9 @@ function NotificationsDropdown() {
       }
     }
 
-    if (notificacion.related_project) {
+    if (notificacion.proyecto_relacionado) {
       /* Si la notificación tiene un proyecto asociado, navegamos hacia el proyecto */
-      navigate(`/projects/${notificacion.related_project}`);
+      navigate(`/proyectos/${notificacion.proyecto_relacionado}`);
     }
   };
 
@@ -79,19 +79,19 @@ function NotificationsDropdown() {
               <Dropdown.ItemText>Sin notificaciones nuevas</Dropdown.ItemText>
             ) : (
               notificaciones
-                .filter(n => !n.is_read)
+                .filter(n => !n.leido)
                 .map((n) => (
                   <Dropdown.Item
                     key={n.id}
                     onClick={() => handleNotificationClick(n)}
                     className="fw-bold"
                   >
-                    {n.message.slice(0, 60)}
+                    {n.mensaje.slice(0, 60)}
                   </Dropdown.Item>
                 ))
             )}
             <Dropdown.Divider />
-            <Dropdown.Item as={Link} to="/notifications" className="text-center text-primary">
+            <Dropdown.Item as={Link} to="/notificaciones" className="text-center text-primary">
               Ver todas las notificaciones →
             </Dropdown.Item>
           </>

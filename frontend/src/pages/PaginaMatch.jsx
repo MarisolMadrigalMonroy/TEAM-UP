@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react';
-import SuggestedUsers from './SuggestedUsers';
-import SuggestedProjects from './SuggestedProjects';
+import UsuariosSugeridos from './UsuariosSugeridos';
+import ProyectosSugeridos from './ProyectosSugeridos';
 import api from '../api';
 
 /*
 * Componente que representa la página para mostrar sugerencias de match 
 */
-function MatchPage({ user }) {
+function PaginaMatch({ usuario }) {
   const [poseeProyectos, setPoseeProyectos] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-  if (!user?.id) return;
+  if (!usuario?.id) return;
 
   const validarPropiedad = async () => {
     try {
-      const res = await api.get('/api/projects/');
-      const usuarioId = Number(user.id);
+      const res = await api.get('/api/proyectos/');
+      const usuarioId = Number(usuario.id);
 
       const proyectosPoseidos = res.data.filter(proyecto => {
-        const creadorId = proyecto.creator;
-        const asesorId = typeof proyecto.mentor === 'object'
-          ? proyecto.mentor?.id
-          : proyecto.mentor;
+        const creadorId = proyecto.creador;
+        const asesorId = typeof proyecto.asesor === 'object'
+          ? proyecto.asesor?.id
+          : proyecto.asesor;
 
         return creadorId === usuarioId || asesorId === usuarioId;
       });
@@ -37,7 +37,7 @@ function MatchPage({ user }) {
   };
 
   validarPropiedad();
-}, [user?.id]);
+}, [usuario?.id]);
 
 
   if (cargando) {
@@ -48,15 +48,15 @@ function MatchPage({ user }) {
     <div className="container py-4">
       {poseeProyectos ? (
         <>
-          <SuggestedUsers userType="student" />
+          <UsuariosSugeridos tipoUsuario="estudiante" />
           <hr />
-          <SuggestedUsers userType="mentor" />
+          <UsuariosSugeridos tipoUsuario="asesor" />
         </>
       ) : (
-        <SuggestedProjects user={user} />
+        <ProyectosSugeridos usuario={usuario} />
       )}
     </div>
   );
 }
 
-export default MatchPage;
+export default PaginaMatch;

@@ -16,7 +16,7 @@ export const obtenerUsuarioActual = () => {
 
 export const obtenerPerfilUsuario = async () => {
     try {
-        const res = await api.get('/api/user/me/');
+        const res = await api.get('/api/usuario/yo/');
         return res.data;
     } catch (err) {
         console.error('Error al obtener el perfil del usuario:', err);

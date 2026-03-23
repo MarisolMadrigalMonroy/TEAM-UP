@@ -5,7 +5,7 @@ import api from "../api";
 /*
 * Componente que representa la página de asesores con match 
 */
-export default function MatchedMentors() {
+export default function AsesoresEmparejados() {
   const { id } = useParams();
   const [asesoresConMatch, setAsesoresConMatch] = useState([]);
   const [proyecto, setProyecto] = useState(null);
@@ -19,8 +19,8 @@ export default function MatchedMentors() {
     setCargando(true);
     try {
       const [proyRes, asesoresRes] = await Promise.all([
-        api.get(`/api/projects/${id}/`),
-        api.get(`/api/projects/${id}/matched-mentors/`)
+        api.get(`/api/proyectos/${id}/`),
+        api.get(`/api/proyectos/${id}/asesores-emparejados/`)
       ]);
       setProyecto(proyRes.data);
       setAsesoresConMatch(asesoresRes.data);
@@ -33,7 +33,7 @@ export default function MatchedMentors() {
 
   const handleAccept = async (asesorId) => {
     try {
-      await api.post(`/api/projects/${id}/assign-mentor/`, { mentor_id: asesorId });
+      await api.post(`/api/proyectos/${id}/asignar-asesor/`, { asesor_id: asesorId });
       await obtenerDatos();
       alert("Asesor asignado exitosamente!");
     } catch (err) {
@@ -53,13 +53,13 @@ export default function MatchedMentors() {
         <ul>
           {asesoresConMatch.map((asesor) => (
             <li key={asesor.id} style={{ marginBottom: "10px" }}>
-              <strong>{asesor.username}</strong> — {asesor.status || "Sin estado"}
+              <strong>{asesor.username}</strong> — {asesor.estado || "Sin estado"}
               <br />
               {asesor.bio && <em>{asesor.bio}</em>}
               <br />
 
-              {proyecto?.mentor ? (
-                asesor.id === proyecto.mentor.id ? (
+              {proyecto?.asesor ? (
+                asesor.id === proyecto.asesor.id ? (
                   <span className="badge bg-success">Asignado</span>
                 ) : (
                   <span className="badge bg-secondary">El proyecto ya cuenta con asesor</span>

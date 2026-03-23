@@ -11,9 +11,9 @@ import { obtenerPerfilUsuario } from '../auth'
 * Props:
 *   route: ruta de la API para tokens de autenticación
 *   method: método Http para le petición
-*   setUser: función para actualizar el usuaio. Propiedad del componente padre
+*   setUsuario: función para actualizar el usuaio. Propiedad del componente padre
 */
-function Form({ route, method, setUser }) {
+function Form({ route, method, setUsuario }) {
     const [nombreUsuario, setNombreUsuario] = useState('')
     const [password, setPassword] = useState('')
     const [tipoUsuario, setTipoUsuario] = useState('')
@@ -37,10 +37,10 @@ function Form({ route, method, setUser }) {
                 : {
                       username: nombreUsuario,
                       password,
-                      user_type: tipoUsuario,
-                      status: estado,
-                      interests: [],
-                      abilities: [],
+                      tipo_usuario: tipoUsuario,
+                      estado: estado,
+                      intereses: [],
+                      habilidades: [],
                   }
 
             const res = await api.post(route, payload)
@@ -49,7 +49,7 @@ function Form({ route, method, setUser }) {
                 localStorage.setItem(ACCESS_TOKEN, res.data.access)
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh)
                 const perfil = await obtenerPerfilUsuario();
-                setUser?.(perfil);
+                setUsuario?.(perfil);
                 navigate('/')
             } else {
                 navigate('/login')
@@ -84,7 +84,7 @@ function Form({ route, method, setUser }) {
             />
 
             {/* Desplegar los siguientes componentes si el método es registrar usuario */}
-            {method === 'register' && (
+            {method === 'registro' && (
                 <>
                     <select
                         className='form-input'
@@ -93,8 +93,8 @@ function Form({ route, method, setUser }) {
                         required
                     >
                         <option value="">Tipo de Usuario</option>
-                        <option value="student">Estudiante</option>
-                        <option value="mentor">Asesor</option>
+                        <option value="estudiante">Estudiante</option>
+                        <option value="asesor">Asesor</option>
                     </select>
 
                     <select
@@ -102,9 +102,9 @@ function Form({ route, method, setUser }) {
                         value={estado}
                         onChange={(e) => setEstado(e.target.value)}
                     >
-                        <option value="available">Buscando Proyecto</option>
-                        <option value="enrolled">En un Proyecto</option>
-                        <option value="inactive">No Estoy Buscando Proyecto</option>
+                        <option value="disponible">Buscando Proyecto</option>
+                        <option value="registrado">En un Proyecto</option>
+                        <option value="inactivo">No Estoy Buscando Proyecto</option>
                     </select>
                 </>
             )}

@@ -3,7 +3,7 @@ import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import NotificationsDropdown from './NotificationsDropdown';
 
-function NavigationBar({ isAuthenticated, user, setUser, onLogout }) {
+function NavigationBar({ isAuthenticated, usuario, setUsuario, onLogout }) {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -21,11 +21,11 @@ function NavigationBar({ isAuthenticated, user, setUser, onLogout }) {
                 <Navbar.Collapse id="main-navbar">
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/">Home</Nav.Link>
-                        <Nav.Link as={Link} to="/projects">Proyectos</Nav.Link>
+                        <Nav.Link as={Link} to="/proyectos">Proyectos</Nav.Link>
                         {/* Si el usuario está autenticado y es asesor o no tiene proyecto, puede crear un proyecto */}
                         {isAuthenticated && (
-                            (user?.user_type === 'mentor' || (user?.user_type === 'student' && user?.projects?.length === 0)) && (
-                                <Nav.Link as={Link} to="/projects/create">Crea Un Proyecto</Nav.Link>
+                            (usuario?.tipo_usuario === 'asesor' || (usuario?.tipo_usuario === 'estudiante' && usuario?.proyectos?.length === 0)) && (
+                                <Nav.Link as={Link} to="/proyectos/crear">Crea Un Proyecto</Nav.Link>
                             )
                         )}
                         {/* Si está autenticado puede buscar un match */}
@@ -39,13 +39,13 @@ function NavigationBar({ isAuthenticated, user, setUser, onLogout }) {
                         {!isAuthenticated ? (
                             <>
                                 <Nav.Link as={Link} to="/login">Inicia Sesión</Nav.Link>
-                                <Nav.Link as={Link} to="/register">Registro</Nav.Link>
+                                <Nav.Link as={Link} to="/registro">Registro</Nav.Link>
                             </>
                         ) : (
                             <>
                             <NotificationsDropdown />
                             <NavDropdown title="Cuenta" id="account-dropdown" align="end">
-                                <NavDropdown.Item as={Link} to="/profile/edit">Perfil</NavDropdown.Item>
+                                <NavDropdown.Item as={Link} to="/perfil/editar">Perfil</NavDropdown.Item>
                                 <NavDropdown.Divider />
                                 <NavDropdown.Item onClick={handleLogout}>Salir</NavDropdown.Item>
                             </NavDropdown>

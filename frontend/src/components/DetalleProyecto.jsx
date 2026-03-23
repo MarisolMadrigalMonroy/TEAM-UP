@@ -13,18 +13,18 @@ import { toast } from 'react-toastify';
 /*
 * Componente para lista de comentarios
 */
-function ListaComentarios({ commentarios }) {
+function ListaComentarios({ comentarios }) {
     return (
         <div className="mt-4">
             <h5>Comentarios</h5>
             {/* Si no hay comentarios desplegar texto de invitación en caso contrario mostrar lista de comentarios */}
-            {commentarios.length === 0 ? (
+            {comentarios.length === 0 ? (
                 <p className="text-muted">No hay comentarios. ¡Sé el primero en comentar!</p>
             ) : (
                 <>
                     {/* Para cada comentario crear una carta con icono de usuario, nombre, fecha y comentario */}
-                    {commentarios.map(commentario => (
-                        <Card key={commentario.id} className="mb-3 shadow-sm">
+                    {comentarios.map(comentario => (
+                        <Card key={comentario.id} className="mb-3 shadow-sm">
                             <Card.Body>
                                 <Row>
                                     <Col xs={1} className="text-center">
@@ -32,12 +32,12 @@ function ListaComentarios({ commentarios }) {
                                     </Col>
                                     <Col>
                                         <div className="d-flex justify-content-between">
-                                            <strong>{commentario.author_username}</strong>
+                                            <strong>{comentario.autor_username}</strong>
                                             <small className="text-muted">
-                                                {new Date(commentario.created_at).toLocaleString()}
+                                                {new Date(comentario.creado_en).toLocaleString()}
                                             </small>
                                         </div>
-                                        <p className="mb-0">{commentario.content}</p>
+                                        <p className="mb-0">{comentario.contenido}</p>
                                     </Col>
                                 </Row>
                             </Card.Body>
@@ -52,7 +52,7 @@ function ListaComentarios({ commentarios }) {
 /*
 * Componente para detalles del proyecto
 */
-function ProjectDetail() {
+function DetalleProyecto() {
     const usuario = obtenerUsuarioActual();
     const sesionIniciada = !!usuario;
     const { id } = useParams(); // id del proyecto desde la url
@@ -67,14 +67,14 @@ function ProjectDetail() {
     // Función para obtener el proyecto
     const obtenerProyecto = async () => {
         try {
-            const [proyRes, userRes] = await Promise.all([
-                api.get(`/api/projects/${id}/`),
+            const [proyRes, usuarioRes] = await Promise.all([
+                api.get(`/api/proyectos/${id}/`),
                 obtenerPerfilUsuario()
             ]);
             setProyecto(proyRes.data);
-            setUsuarioActual(userRes);
+            setUsuarioActual(usuarioRes);
 
-            if (proyRes.data.has_liked) {
+            if (proyRes.data.tiene_like) {
                 setLiked(true);
             }
         } catch (err) {
@@ -85,7 +85,7 @@ function ProjectDetail() {
     // Función para obtener comentarios del proyecto
     const obtenerComentarios = async () => {
         try {
-            const res = await api.get(`/api/projects/${id}/comments/`);
+            const res = await api.get(`/api/proyectos/${id}/comentarios/`);
             setComentarios(res.data);
         } catch (err) {
             console.error('Error obteniendo los comentarios:', err);
@@ -109,9 +109,9 @@ function ProjectDetail() {
         if (!nuevoComentario.trim()) return;
         setPublicando(true);
         try {
-            const res = await api.post(`/api/projects/${id}/comments/`, {
-                content: nuevoComentario,
-                project: id,
+            const res = await api.post(`/api/proyectos/${id}/comentarios/`, {
+                contenido: nuevoComentario,
+                proyecto: id,
             });
             setComentarios([...comentarios, res.data]);
             setNuevoComentario('');
@@ -125,16 +125,16 @@ function ProjectDetail() {
     // Función para controlar la acción de me gusta en un proyecto
     const handleLike = async () => {
         try {
-            const res = await api.post(`/api/match/like-project/`, {
-                project: proyecto.id,
-                liked: true,
+            const res = await api.post(`/api/match/like-proyecto/`, {
+                proyecto: proyecto.id,
+                gustado: true,
             });
             setLiked(true);
             // Si hay un emparejamiento entre usuario y proyecto, mostrar notificación
-            if (res.data.matched && res.data.match_with) {
-                toast.success(`🎉 Hiciste match con ${res.data.match_with} en "${proyecto.name}"!`);
+            if (res.data.emparejado && res.data.emparejado_con) {
+                toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyecto.nombre}"!`);
             } else {
-                toast.info(`Te gusta "${proyecto.name}"`);
+                toast.info(`Te gusta "${proyecto.nombre}"`);
             }
         } catch (err) {
             console.error("Error al darle me gusta al proyecto:", err);
@@ -153,7 +153,7 @@ function ProjectDetail() {
     // Variable para saber si el usuario es el creador o asesor del proyecto
     const esCreadorOAsesor =
         usuarioActual &&
-        (usuarioActual.id === proyecto.creator || usuarioActual.id === proyecto.mentor?.id);
+        (usuarioActual.id === proyecto.creador || usuarioActual.id === proyecto.asesor?.id);
 
     return (
         <Container fluid className="py-5 px-4">
@@ -161,14 +161,14 @@ function ProjectDetail() {
                 <Col lg={10} xl={9}>
                     {/* Encabezado tipo blog */}
                     <header className="pb-3 mb-4 border-bottom">
-                        <h1 className="display-4">{proyecto.name}</h1>
-                        <p className="lead">{proyecto.description}</p>
+                        <h1 className="display-4">{proyecto.nombre}</h1>
+                        <p className="lead">{proyecto.descripcion}</p>
                     </header>
 
                     <Row>
                         {/* Izquierda: Comentarios + Formulario */}
                         <Col md={8}>
-                            <ListaComentarios commentarios={comentarios} />
+                            <ListaComentarios comentarios={comentarios} />
                             {sesionIniciada && (
                                 <div className="position-sticky bottom-0 bg-white p-3 border-top">
                                     <Form onSubmit={handlePostComment}>
@@ -198,15 +198,15 @@ function ProjectDetail() {
                                     <ListGroup variant="flush">
                                         <ListGroup.Item>
                                             <strong>Asesor:</strong>{' '}
-                                            {proyecto.mentor ? proyecto.mentor.username : 'Ninguno'}
+                                            {proyecto.asesor ? proyecto.asesor.username : 'Ninguno'}
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                         <strong>Estudiantes:</strong>
-                                        {proyecto.students?.length > 0 ? (
+                                        {proyecto.estudiantes?.length > 0 ? (
                                             <ul className="list-unstyled mt-2">
-                                            {proyecto.students.map(estudiante => {
-                                                const esCreador = estudiante.id === proyecto.creator;
-                                                const esAsesor = proyecto.mentor && estudiante.id === proyecto.mentor.id;
+                                            {proyecto.estudiantes.map(estudiante => {
+                                                const esCreador = estudiante.id === proyecto.creador;
+                                                const esAsesor = proyecto.asesor && estudiante.id === proyecto.asesor.id;
 
                                                 return (
                                                 <li
@@ -222,19 +222,19 @@ function ProjectDetail() {
                                                         size="sm"
                                                         onClick={async () => {
                                                         try {
-                                                            await api.post(`/api/projects/${proyecto.id}/unassign-user/`, {
-                                                            user_id: estudiante.id,
+                                                            await api.post(`/api/proyectos/${proyecto.id}/remover-usuario/`, {
+                                                            usuario_id: estudiante.id,
                                                             });
                                                             setProyecto(prev => ({
                                                             ...prev,
-                                                            students: prev.students.filter(u => u.id !== estudiante.id),
-                                                            status:
-                                                                prev.students.length - 1 < 3 && prev.status === "team_complete"
-                                                                ? "looking_students"
-                                                                : prev.status,
+                                                            estudiantes: prev.estudiantes.filter(u => u.id !== estudiante.id),
+                                                            estado:
+                                                                prev.estudiantes.length - 1 < 3 && prev.estado === "equipo_completo"
+                                                                ? "buscando_estudiantes"
+                                                                : prev.estado,
                                                             }));
                                                         } catch (err) {
-                                                            console.error("Error removiando al estudiante:", err);
+                                                            console.error("Error removiendo al estudiante:", err);
                                                         }
                                                         }}
                                                     >
@@ -251,27 +251,27 @@ function ProjectDetail() {
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                             <strong>Categorías:</strong>{' '}
-                                            {proyecto.categories_details?.map(cat => cat.name).join(', ') || 'Ninguna'}
+                                            {proyecto.detalles_categorias?.map(cat => cat.nombre).join(', ') || 'Ninguna'}
                                         </ListGroup.Item>
                                         <ListGroup.Item>
                                             <strong>Habilidades Requeridas:</strong>{' '}
-                                            {proyecto.required_abilities_details?.map(ab => ab.name).join(', ') || 'Ninguna'}
+                                            {proyecto.detalles_habilidades_requeridas?.map(hab => hab.nombre).join(', ') || 'Ninguna'}
                                         </ListGroup.Item>
                                         {/* Si es creador o asesor puede editar proyectos, ver estudiantes y asesores con match */}
                                         {esCreadorOAsesor && (
                                             <>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${proyecto.id}/edit`} className="btn btn-primary mt-3 w-100">
+                                                    <Link to={`/proyectos/${proyecto.id}/editar`} className="btn btn-primary mt-3 w-100">
                                                         Editar Proyecto
                                                     </Link>
                                                 </ListGroupItem>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${proyecto.id}/matched-users`} className="btn btn-outline-success mt-2 w-100">
+                                                    <Link to={`/proyectos/${proyecto.id}/usuarios-emparejados`} className="btn btn-outline-success mt-2 w-100">
                                                         Ver Estudintes con Match
                                                     </Link>
                                                 </ListGroupItem>
                                                 <ListGroupItem>
-                                                    <Link to={`/projects/${proyecto.id}/matched-mentors`} className="btn btn-outline-info mt-2 w-100">
+                                                    <Link to={`/proyectos/${proyecto.id}/asesores-emparejados`} className="btn btn-outline-info mt-2 w-100">
                                                         Ver Asesores con Match
                                                     </Link>
                                                 </ListGroupItem>
@@ -279,10 +279,10 @@ function ProjectDetail() {
                                         )}
                                     </ListGroup>
                                     {sesionIniciada && (() => {
-                                        const esEstudiante = usuarioActual?.user_type === "student";
-                                        const esAsesor = usuarioActual?.user_type === "mentor";
-                                        const esPropietario = usuarioActual?.id === proyecto.creator;
-                                        const esEstudianteEnUnProyecto = esEstudiante && usuarioActual?.projects?.length > 0;
+                                        const esEstudiante = usuarioActual?.tipo_usuario === "estudiante";
+                                        const esAsesor = usuarioActual?.tipo_usuario === "asesor";
+                                        const esPropietario = usuarioActual?.id === proyecto.creador;
+                                        const esEstudianteEnUnProyecto = esEstudiante && usuarioActual?.proyectos?.length > 0;
 
                                         if (esPropietario) return null;
 
@@ -324,4 +324,4 @@ function ProjectDetail() {
     );
 }
 
-export default ProjectDetail;
+export default DetalleProyecto;

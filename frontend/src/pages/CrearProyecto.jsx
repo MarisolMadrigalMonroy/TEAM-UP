@@ -1,68 +1,72 @@
-// src/pages/EditProject.jsx
+// src/pages/CrearProyecto.jsx
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { obtenerPerfilUsuario } from '../auth';
 
 /*
-* Componente para editar un proyecto
+ * Componente para crear un proyeccto
 */
-function EditProject({ user }) {
-    const { id } = useParams();
-    const [proyecto, setProyecto] = useState(null);
+function CrearProyecto({ setUsuario }) {
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [estado, setEstado] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
     const [habilidades, setHabilidades] = useState([]);
     const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [error, setError] = useState(null);
+    const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
-    const STATUS_OPTIONS = [
-        { value: 'looking_students', label: 'Buscando Estudiantes' },
-        { value: 'team_complete', label: 'Equipo Completo' },
-        { value: 'looking_mentor', label: 'Buscando Asesor' },
-        { value: 'in_progress', label: 'En Desarrollo' },
-        { value: 'completed', label: 'Completo' },
-        { value: 'cancelled', label: 'Cancelado' }
-    ];
-
     useEffect(() => {
-        // Función para obtener datos del proyecto
-        async function obtenerDatos() {
+        const validarUsuarioYCargarDatos = async () => {
             try {
-                const [proyRes, catRes, habRes] = await Promise.all([
-                    api.get(`/api/projects/${id}/`),
-                    api.get('/api/categories/'),
-                    api.get('/api/abilities/')
-                ]);
+                const usuarioRes = await api.get('/api/usuario/yo/');
+                const usuario = usuarioRes.data;
 
-                const data = proyRes.data;
-                setProyecto(data);
-                if (!user || 
-                    (user.id !== data.creator && user.id !== data.mentor?.id)
-                ) {
-                    alert('No estás autorizado para editar este proyecto.');
-                    navigate(`/projects/${id}`);
+                // Si el usuario es estudiante y es parte de un proyecto
+                if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0) {
+                    alert('Ya eres parte de un proyecto, no puedes crear uno nuevo.');
+                    navigate('/');
                     return;
                 }
-                setNombre(data.name);
-                setDescripcion(data.description);
-                setEstado(data.status || 'looking_students');
-                setCategoriasSeleccionadas(data.categories_details.map(cat => cat.id));
-                setHabilidadesSeleccionadas(data.required_abilities_details.map(ab => ab.id));
+
+                const [catRes, habRes] = await Promise.all([
+                    api.get('/api/categorias/'),
+                    api.get('/api/habilidades/')
+                ]);
+
                 setCategorias(catRes.data);
                 setHabilidades(habRes.data);
+                setCargando(false);
             } catch (err) {
-                setError('Error cargando proyecto u opciones.');
-                console.error(err);
+                console.error('Error validando usuario o cargando opciones:', err);
+                setError('No se pudieron verificar accesos o cargar opciones.');
             }
-        }
+        };
 
-        obtenerDatos();
-    }, [id, navigate, user]);
+        validarUsuarioYCargarDatos();
+    }, [navigate]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const res = await api.post('/api/proyectos/', {
+                nombre: nombre,
+                description: descripcion,
+                categorias: categoriasSeleccionadas,
+                habilidades_requeridas: habilidadesSeleccionadas
+            });
+            const usuarioActualizado = await obtenerPerfilUsuario();
+            setUsuario(usuarioActualizado);
+            navigate(`/proyectos/${res.data.id}`);
+        } catch (err) {
+            console.error(err);
+            setError('No se pudo crear el proyecto.');
+        }
+    };
 
     // Función para actualizar lista de opciones seleccionadas
     const handleCheckboxToggle = (id, listaSeleccionada, setListaSeleccionada) => {
@@ -73,28 +77,9 @@ function EditProject({ user }) {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.put(`/api/projects/${id}/`, {
-                name: nombre,
-                description: descripcion,
-                status: estado,
-                categories: categoriasSeleccionadas,
-                required_abilities: habilidadesSeleccionadas,
-            });
-            navigate(`/projects/${id}`);
-        } catch (err) {
-            setError('Error al actualizar el proyecto.');
-            console.error(err);
-        }
-    };
-
-    if (!proyecto) return <Container><p>Cargando...</p></Container>;
-
     return (
         <Container className="py-5">
-            <h2>Editar Proyecto</h2>
+            <h2 className="mb-4">Crea un Proyecto</h2>
             {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
@@ -119,27 +104,13 @@ function EditProject({ user }) {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                    <Form.Label>Estado</Form.Label>
-                    <Form.Select
-                        value={estado}
-                        onChange={(e) => setEstado(e.target.value)}
-                    >
-                        {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                     <Form.Label>Categorías</Form.Label>
                     <Row>
                         {categorias.map(cat => (
                             <Col xs={12} md={6} key={cat.id}>
                                 <Form.Check
                                     type="checkbox"
-                                    label={cat.name}
+                                    label={cat.nombre}
                                     checked={categoriasSeleccionadas.includes(cat.id)}
                                     onChange={() => handleCheckboxToggle(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
                                 />
@@ -155,7 +126,7 @@ function EditProject({ user }) {
                             <Col xs={12} md={6} key={habilidad.id}>
                                 <Form.Check
                                     type="checkbox"
-                                    label={habilidad.name}
+                                    label={habilidad.nombre}
                                     checked={habilidadesSeleccionadas.includes(habilidad.id)}
                                     onChange={() => handleCheckboxToggle(habilidad.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
                                 />
@@ -164,10 +135,10 @@ function EditProject({ user }) {
                     </Row>
                 </Form.Group>
 
-                <Button type="submit">Guardar Cambios</Button>
+                <Button type="submit">Crear</Button>
             </Form>
         </Container>
     );
 }
 
-export default EditProject;
+export default CrearProyecto;

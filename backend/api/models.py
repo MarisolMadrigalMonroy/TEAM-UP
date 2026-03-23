@@ -4,180 +4,212 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from pgvector.django import VectorField
 
-class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+class Categoria(models.Model):
+    '''
+    Modelo que representa categorías para proyectos
+    '''
+
+    nombre = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
-        return self.name
+        return self.nombre
 
-class Interest(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+class Interes(models.Model):
+    '''
+    Modelo que representa intereses de usuarios
+    '''
 
-    def __str__(self):
-        return self.name
-    
-class Ability(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
-        return self.name
-    
+        return self.nombre
+
+class Habilidad(models.Model):
+    '''
+    Modelo que representa habilidades de usuarios
+    '''
+
+    nombre = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
+
 class User(AbstractUser):
-    STUDENT = 'student'
-    MENTOR = 'mentor'
-    USER_TYPE_CHOICES = [
-        (STUDENT, 'Student'),
-        (MENTOR, 'Mentor'),
+    '''
+    Modelo que representa usuarios
+    '''
+
+    ESTUDIANTE = 'estudiante'
+    ASESOR = 'asesor'
+    TIPO_USUARIO = [
+        (ESTUDIANTE, 'Estudiante'),
+        (ASESOR, 'Asesor'),
     ]
-    USER_STATUS_CHOICES = [
-    ('available', 'Looking for a Project'),
-    ('enrolled', 'Enrolled in a Project'),
-    ('inactive', 'Not Currently Looking'),
+    ESTADO_USUARIO = [
+    ('disponible', 'Buscando Proyecto'),
+    ('registrado', 'En un Proyecto'),
+    ('inactivo', 'No Estoy Buscando Proyecto'),
     ]
-    user_type = models.CharField(max_length=10, blank=True, choices=USER_TYPE_CHOICES)
-    interests = models.ManyToManyField(Interest, blank=True, related_name='interested_users')
-    abilities = models.ManyToManyField(Ability, blank=True, related_name='skilled_users')
-    status = models.CharField(
+    tipo_usuario = models.CharField(max_length=10, blank=True, choices=TIPO_USUARIO)
+    intereses = models.ManyToManyField(Interes, blank=True, related_name='intereses_usuarios')
+    habilidades = models.ManyToManyField(Habilidad, blank=True, related_name='habilidades_usuarios')
+    estado = models.CharField(
         max_length=20,
-        choices=USER_STATUS_CHOICES,
-        default='available'
+        choices=ESTADO_USUARIO,
+        default='disponible'
     )
     bio = models.TextField(blank=True)  # Usado para embeddings de IA
     embedding = VectorField(dimensions=1536, blank=True, null=True)  # embeddings con OpenAI
 
-    def is_student(self):
-        return self.user_type == self.STUDENT
+    def es_estudiante(self):
+        return self.tipo_usuario == self.ESTUDIANTE
     
-    def is_mentor(self):
-        return self.user_type == self.MENTOR
+    def es_asesor(self):
+        return self.tipo_usuario == self.ASESOR
     
-class Project(models.Model):
-    created_at = models.DateTimeField(default=timezone.now)
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
+class Proyecto(models.Model):
+    '''
+    Modelo que representa proyectos
+    '''
+
+    creado_en = models.DateTimeField(default=timezone.now)
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True)
     # Los proyectos tienen un asesor
-    mentor = models.ForeignKey(
+    asesor = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        limit_choices_to={'user_type': User.MENTOR},
-        related_name='mentored_projects'
+        limit_choices_to={'tipo_usuario': User.ASESOR},
+        related_name='proyectos_asesorados'
     )
     # Los proyectos tienen estudiantes
-    students = models.ManyToManyField(
+    estudiantes = models.ManyToManyField(
         User,
-        related_name='projects_as_student',
+        related_name='proyectos_como_estudiante',
         blank=True,
-        limit_choices_to={'user_type': User.STUDENT},
+        limit_choices_to={'tipo_usuario': User.ESTUDIANTE},
     )
     # Los proyectos tienen un creador
-    creator = models.ForeignKey(
+    creador = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='created_projects'
+        related_name='proyectos_creados'
     )
-    categories = models.ManyToManyField(Category, related_name='projects', blank=True)
-    required_abilities = models.ManyToManyField(Ability, blank=True, related_name='projects')
-    STATUS_CHOICES = [
-        ('looking_students', 'Looking for Students'),
-        ('team_complete', 'Team Complete'),
-        ('looking_mentor', 'Looking for Mentor'),
-        ('in_progress', 'Under Development'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
+    categorias = models.ManyToManyField(Categoria, related_name='proyectos', blank=True)
+    habilidades_requeridas = models.ManyToManyField(Habilidad, blank=True, related_name='proyectos')
+    ESTADOS = [
+        ('buscando_estudiantes', 'Buscando Estudiantes'),
+        ('equipo_completo', 'Equipo Completo'),
+        ('buscando_asesor', 'Buscando Asesor'),
+        ('en_progreso', 'En Progreso'),
+        ('terminado', 'Terminado'),
+        ('cancelado', 'Cancelado'),
     ]
-    status = models.CharField(
+    estado = models.CharField(
         max_length=20,
-        choices=STATUS_CHOICES,
-        default='looking_students'
+        choices=ESTADOS,
+        default='buscando_estudiantes'
     )
     embedding = VectorField(dimensions=1536, blank=True, null=True)  # matching
 
-class Comment(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='comments')
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now_add=True)
+class Comentario(models.Model):
+    '''
+    Modelo que representa comentarios
+    '''
+
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name='comentarios')
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comentarios')
+    contenido = models.TextField()
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['creado_en']
 
     
     def __str__(self):
-        return f'{self.author.username} - {self.project.name}'
+        return f'{self.autor.username} - {self.proyecto.nombre}'
 
-class ProjectMatchInterest(models.Model):
+class InteresSobreProyecto(models.Model):
     '''
     Registra si un usuario dio me gusta/no me gusta a un proyecto.
     Asegura que cada usuario puede votar una vez por proyecto (unique_together).
     '''
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='project_likes')
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='liked_by_users')
-    liked = models.BooleanField()
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes_a_proyecto')
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name='gustado_por_usuarios')
+    gustado = models.BooleanField()
+    creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'project')
+        unique_together = ('usuario', 'proyecto')
 
     def __str__(self):
-        return f"{self.user.username} {'dio me gusta a' if self.liked else 'dio no me gusta a'} {self.project.name}"
+        return f"{self.usuario.username} {'dio me gusta a' if self.gustado else 'dio no me gusta a'} {self.proyecto.nombre}"
 
 
-class UserMatchInterest(models.Model):
+class InteresSobreUsuario(models.Model):
     '''
     Registra si un proyecto (a través de su asesor/creador) dio me gusta/no me gusta a un usuario.
     Misma restricción de valores únicos por par usuario-proyecto.
     '''
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='user_likes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='liked_by_projects')
-    liked = models.BooleanField()
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name='likes_a_usuario')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gustado_por_proyectos')
+    gustado = models.BooleanField()
+    creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('project', 'user')
+        unique_together = ('proyecto', 'usuario')
 
     def __str__(self):
-        return f"{self.project.name} {'dio me gusta a' if self.liked else 'dio no me gusta a'} {self.user.username}"
+        return f"{self.proyecto.nombre} {'dio me gusta a' if self.gustado else 'dio no me gusta a'} {self.usuario.username}"
 
 
-class ProjectMatch(models.Model):
+class Match(models.Model):
     '''
     Se crea sólo cuando ambos (usuario-proyecto) se dieron me gusta.
     Indica un match confirmado.
     '''
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    matched_at = models.DateTimeField(auto_now_add=True)
+    
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE)
+    emparejado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'project')
+        unique_together = ('usuario', 'proyecto')
 
     def __str__(self):
-        return f"{self.user.username} hizo match con {self.project.name}"
+        return f"{self.usuario.username} hizo match con {self.proyecto.nombre}"
 
-class Notification(models.Model):
-    recipient = models.ForeignKey(
+class Notificacion(models.Model):
+    '''
+    Representa una notificación para los usuarios.
+    Las notificaciones se crean cuando existe un match.
+    '''
+
+    receptor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='notifications'
+        related_name='notificaciones'
     )
-    message = models.TextField()
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    related_project = models.ForeignKey(
-        Project,
+    mensaje = models.TextField()
+    leido = models.BooleanField(default=False)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    proyecto_relacionado = models.ForeignKey(
+        Proyecto,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='notifications'
+        related_name='notificaciones'
     )
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-creado_en']
 
     def __str__(self):
-        return f'Notification for {self.recipient.username}: {self.message[:50]}'
+        return f'Notificación para {self.receptor.username}: {self.mensaje[:50]}'

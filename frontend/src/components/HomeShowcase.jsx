@@ -21,17 +21,17 @@ function CarruselProyectos({ titulo, proyectos }) {
         {proyectos.map((proyecto) => (
           <Carousel.Item key={proyecto.id}>
             <div className="p-5 bg-light rounded-4 shadow-sm border text-center">
-              <h3 className="fw-bold">{proyecto.name}</h3>
-              <p className="text-muted">{proyecto.description.slice(0, 200)}...</p>
+              <h3 className="fw-bold">{proyecto.nombre}</h3>
+              <p className="text-muted">{proyecto.descripcion.slice(0, 200)}...</p>
               <div className="mb-3">
-                {dayjs().diff(dayjs(proyecto.created_at), 'day') <= 7 && (
+                {dayjs().diff(dayjs(proyecto.creado_en), 'day') <= 7 && (
                   <Badge bg="success" className="me-2">Nuevo</Badge>
                 )}
-                {proyecto.students?.length == 2 && (
+                {proyecto.estudiantes?.length == 2 && (
                   <Badge bg="warning" text="dark">Popular</Badge>
                 )}
               </div>
-              <Button variant="primary" onClick={() => navigate(`/projects/${proyecto.id}`)}>
+              <Button variant="primary" onClick={() => navigate(`/proyectos/${proyecto.id}`)}>
                 Ver Proyecto
               </Button>
             </div>
@@ -51,7 +51,7 @@ function HomeShowcase() {
   useEffect(() => {
     const obtenerProyectos = async () => {
       try {
-        const res = await api.get('/api/projects/');
+        const res = await api.get('/api/proyectos/');
         setProyectos(res.data);
       } catch (err) {
         console.error('Error obteniendo proyectos:', err);
@@ -75,19 +75,19 @@ function HomeShowcase() {
   // proyectos creados en los últimos 7 días
   const proyectosNuevos = listaProyectos
     .filter(p => {
-      const diff = dayjs().diff(dayjs(p.created_at), 'day');
+      const diff = dayjs().diff(dayjs(p.creado_en), 'day');
       return diff >= 0 && diff <= 7;
     })
     .slice(0, 3);
 
   // proyectos con 2 estudiantes
   const proyectosPopulares = listaProyectos
-    .filter(p => p.students?.length == 2)
+    .filter(p => p.estudiantes?.length == 2)
     .slice(0, 3);
 
   // proyectos con equipo completo o proyectos completados
   const historiasExito = listaProyectos
-    .filter(p => ['team_complete', 'completed'].includes(p.status))
+    .filter(p => ['equipo_completo', 'terminado'].includes(p.estado))
     .slice(0, 3);
 
   return (
@@ -99,7 +99,7 @@ function HomeShowcase() {
       <CarruselProyectos titulo="Historias de Éxito" proyectos={historiasExito} />
 
       <div className="text-center mt-5">
-        <Button variant="outline-primary" size="lg" onClick={() => navigate('/projects')}>
+        <Button variant="outline-primary" size="lg" onClick={() => navigate('/proyectos')}>
           Ver Todos
         </Button>
       </div>

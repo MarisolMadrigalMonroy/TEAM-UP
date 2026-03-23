@@ -1,19 +1,19 @@
 from rest_framework import serializers
-from .models import Ability, Interest, Category, Comment, Project, User,  ProjectMatchInterest, UserMatchInterest, ProjectMatch, Notification
+from .models import Habilidad, Interes, Categoria, Comentario, Proyecto, User, InteresSobreProyecto, InteresSobreUsuario, Match, Notificacion
 
-class InterestSerializer(serializers.ModelSerializer):
+class InteresSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Interest
-        fields = ['id', 'name']
+        model = Interes
+        fields = ['id', 'nombre']
 
-class AbilitySerializer(serializers.ModelSerializer):
+class HabilidadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Ability
-        fields = ['id', 'name']
+        model = Habilidad
+        fields = ['id', 'nombre']
 
 class UserSerializer(serializers.ModelSerializer):
-    interests = serializers.PrimaryKeyRelatedField(many=True, queryset=Interest.objects.all())
-    abilities = serializers.PrimaryKeyRelatedField(many=True, queryset=Ability.objects.all())
+    intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())
+    habilidades = serializers.PrimaryKeyRelatedField(many=True, queryset=Habilidad.objects.all())
 
     class Meta:
         model = User
@@ -21,166 +21,165 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}} # No queremos regresar la contraseña del usuario
     
     def create(self, validated_data):
-        interests = validated_data.pop('interests', [])
-        abilities = validated_data.pop('abilities', [])
+        intereses = validated_data.pop('intereses', [])
+        habilidades = validated_data.pop('habilidades', [])
 
-        user = User.objects.create_user(**validated_data)
+        usuario = User.objects.create_user(**validated_data)
 
-        user.interests.set(interests)
-        user.abilities.set(abilities)
-        return user
+        usuario.intereses.set(intereses)
+        usuario.habilidades.set(habilidades)
+        return usuario
 
 
-class CommentSerializer(serializers.ModelSerializer):
-    author_username = serializers.ReadOnlyField(source='author.username')
+class ComentarioSerializer(serializers.ModelSerializer):
+    autor_username = serializers.ReadOnlyField(source='autor.username')
 
     class Meta:
-        model = Comment
-        fields = ['id', 'project', 'author', 'author_username', 'content', 'created_at', 'updated_at']
-        read_only_fields = ['author', 'created_at', 'updated_at']
+        model = Comentario
+        fields = ['id', 'proyecto', 'autor', 'autor_username', 'contenido', 'creado_en', 'actualizado_en']
+        read_only_fields = ['autor', 'creado_en', 'actualizado_en']
 
-class CategorySerializer(serializers.ModelSerializer):
+class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Category
-        fields = ['id', 'name']
+        model = Categoria
+        fields = ['id', 'nombre']
 
-class ProjectSerializer(serializers.ModelSerializer):
-    categories = serializers.PrimaryKeyRelatedField(
+class ProyectoSerializer(serializers.ModelSerializer):
+    categorias = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=Category.objects.all(),
+        queryset=Categoria.objects.all(),
         write_only=True,
     )
     
-    required_abilities = serializers.PrimaryKeyRelatedField(
+    habilidades_requeridas = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=Ability.objects.all(),
+        queryset=Habilidad.objects.all(),
         write_only=True,
     )
-    students = UserSerializer(many=True, read_only=True)
-    mentor = UserSerializer(read_only=True)
-    categories_details = CategorySerializer(many=True, read_only=True, source='categories')
-    required_abilities_details = AbilitySerializer(many=True, read_only=True, source='required_abilities')
-    has_liked = serializers.SerializerMethodField()
+    estudiantes = UserSerializer(many=True, read_only=True)
+    asesor = UserSerializer(read_only=True)
+    detalles_categorias = CategoriaSerializer(many=True, read_only=True, source='categorias')
+    detalles_habilidades_requeridas = HabilidadSerializer(many=True, read_only=True, source='habilidades_requeridas')
+    tiene_like = serializers.SerializerMethodField()
 
     class Meta:
-        model = Project
+        model = Proyecto
         fields = [
-            'id', 'created_at', 'name', 'description', 'mentor', 'creator', 'students', 'categories', 
-            'required_abilities', 'categories_details', 'required_abilities_details', 'status', 'has_liked']
+            'id', 'creado_en', 'nombre', 'descripcion', 'asesor', 'creador', 'estudiantes', 'categorias', 
+            'habilidades_requeridas', 'detalles_categorias', 'detalles_habilidades_requeridas', 'estado', 'tiene_like']
         read_only_fields = ['embedding']
     
-    def validate_students(self, users):
+    def validate_estudiantes(self, usuarios):
         # Los proyectos solo pueden tener hasta 3 estudiantes
-        if len(users) > 3:
+        if len(usuarios) > 3:
             raise serializers.ValidationError('Un proyecto no puede tener más de 3 estudiantes.')
 
         # Revisamos que cada usuario no haya sido asignado a otro proyecto
-        for user in users:
-            if user.projects.exclude(id=self.instance.id if self.instance else None).exists():
-                raise serializers.ValidationError(f'El estudiante {user.username} ya está asignado a otro proyecto.')
-        return users
+        for usuario in usuarios:
+            if usuario.proyectos.exclude(id=self.instance.id if self.instance else None).exists():
+                raise serializers.ValidationError(f'El estudiante {usuario.username} ya está asignado a otro proyecto.')
+        return usuarios
     
     def update(self, instance, validated_data):
-        categories = validated_data.pop('categories', None)
-        abilities = validated_data.pop('required_abilities', None)
+        categorias = validated_data.pop('categorias', None)
+        habilidades = validated_data.pop('habilidades_requeridas', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        if categories is not None:
-            instance.categories.set(categories)
-        if abilities is not None:
-            instance.required_abilities.set(abilities)
+        if categorias is not None:
+            instance.categorias.set(categorias)
+        if habilidades is not None:
+            instance.habilidades_requeridas.set(habilidades)
 
         return instance
 
-    def get_has_liked(self, obj):
+    def get_tiene_like(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
-        user = request.user
-        if not user or not user.is_authenticated:
+        usuario = request.user
+        if not usuario or not usuario.is_authenticated:
             return False
         # Regresamos si hubo un like entre usuario y proyecto
-        return ProjectMatchInterest.objects.filter(
-            user=user,
-            project=obj,
-            liked=True
+        return InteresSobreProyecto.objects.filter(
+            usuario=usuario,
+            proyecto=obj,
+            gustado=True
         ).exists()
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    interests = serializers.PrimaryKeyRelatedField(many=True, queryset=Interest.objects.all())
-    abilities = serializers.PrimaryKeyRelatedField(many=True, queryset=Ability.objects.all())
-    projects = serializers.PrimaryKeyRelatedField(
+class PerfilUsuarioSerializer(serializers.ModelSerializer):
+    intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())
+    habilidades = serializers.PrimaryKeyRelatedField(many=True, queryset=Habilidad.objects.all())
+    proyectos = serializers.PrimaryKeyRelatedField(
         many=True,
         read_only=True,
-        source='projects_as_student'
+        source='proyectos_como_estudiante'
     )
 
     class Meta:
         model = User
-        fields = ['id', 'interests', 'abilities', 'status', 'user_type', 'projects', 'bio']
+        fields = ['id', 'intereses', 'habilidades', 'estado', 'tipo_usuario', 'proyectos', 'bio']
     
     def update(self, instance, validated_data):
-        interests = validated_data.pop('interests', None)
-        abilities = validated_data.pop('abilities', None)
+        intereses = validated_data.pop('intereses', None)
+        habilidades = validated_data.pop('habilidades', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        if interests is not None:
-            instance.interests.set(interests)
-        if abilities is not None:
-            instance.abilities.set(abilities)
+        if intereses is not None:
+            instance.intereses.set(intereses)
+        if habilidades is not None:
+            instance.habilidades.set(habilidades)
 
         instance.save()
         return instance
 
-
-class ProjectMatchInterestSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    liked = serializers.BooleanField()
-
-    class Meta:
-        model = ProjectMatchInterest
-        fields = ['id', 'user', 'project', 'liked', 'created_at']
-        read_only_fields = ['id', 'user', 'created_at']
-
-class UserMatchInterestSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    liked = serializers.BooleanField()
+class InteresSobreProyectoSerializer(serializers.ModelSerializer):
+    usuario = serializers.PrimaryKeyRelatedField(read_only=True)
+    proyecto = serializers.PrimaryKeyRelatedField(queryset=Proyecto.objects.all())
+    gustado = serializers.BooleanField()
 
     class Meta:
-        model = UserMatchInterest
-        fields = ['id', 'user', 'project', 'liked', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        model = InteresSobreProyecto
+        fields = ['id', 'usuario', 'proyecto', 'gustado', 'creado_en']
+        read_only_fields = ['id', 'usuario', 'creado_en']
 
-class ProjectMatchSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-    project = serializers.PrimaryKeyRelatedField(read_only=True)
-    matched_at = serializers.DateTimeField(read_only=True)
-
-    class Meta:
-        model = ProjectMatch
-        fields = ['id', 'user', 'project', 'matched_at']
-
-class NotificationSerializer(serializers.ModelSerializer):
-    related_project_name = serializers.CharField(source='related_project.name', read_only=True)
+class InteresSobreUsuarioSerializer(serializers.ModelSerializer):
+    usuario = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    proyecto = serializers.PrimaryKeyRelatedField(queryset=Proyecto.objects.all())
+    gustado = serializers.BooleanField()
 
     class Meta:
-        model = Notification
-        fields = ['id', 'message', 'is_read', 'created_at', 'related_project', 'related_project_name']
-        read_only_fields = ['id', 'created_at', 'related_project_name']
+        model = InteresSobreUsuario
+        fields = ['id', 'usuario', 'proyecto', 'gustado', 'creado_en']
+        read_only_fields = ['id', 'creado_en']
 
-class UserDetailSerializer(serializers.ModelSerializer):
-    abilities = AbilitySerializer(many=True)
-    interests = InterestSerializer(many=True)
+class MatchSerializer(serializers.ModelSerializer):
+    usuario = serializers.PrimaryKeyRelatedField(read_only=True)
+    proyecto = serializers.PrimaryKeyRelatedField(read_only=True)
+    emparejado_en = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = Match
+        fields = ['id', 'usuario', 'proyecto', 'emparejado_en']
+
+class NotificacionSerializer(serializers.ModelSerializer):
+    nombre_proyecto_relacionado = serializers.CharField(source='proyecto_relacionado.nombre', read_only=True)
+
+    class Meta:
+        model = Notificacion
+        fields = ['id', 'mensaje', 'leido', 'creado_en', 'proyecto_relacionado', 'nombre_proyecto_relacionado']
+        read_only_fields = ['id', 'creado_en', 'nombre_proyecto_relacionado']
+
+class DetalleUsuarioSerializer(serializers.ModelSerializer):
+    habilidades = HabilidadSerializer(many=True)
+    intereses = InteresSerializer(many=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'bio', 'abilities', 'interests']
+        fields = ['id', 'username', 'bio', 'habilidades', 'intereses']
 

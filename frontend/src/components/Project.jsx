@@ -1,14 +1,14 @@
 import React from 'react'
 import '../styles/Note.css'
 
-function Project({project, onDelete}) {
-    const formattedDate = new Date(project.created_at).toLocaleDateString('en-US')
+function Proyecto({proyecto, onDelete}) {
+    const formattedDate = new Date(proyecto.creado_en).toLocaleDateString('en-US')
     return <div className='note-container'>
-        <p className='note-title'>{project.name}</p>
-        <p className='note-content'>{project.description}</p>
+        <p className='note-title'>{proyecto.nombre}</p>
+        <p className='note-content'>{proyecto.descripcion}</p>
         <p className='note-date'>{formattedDate}</p>
-        <button className='delete-button' onClick={() => onDelete(project.id)}>Delete</button>
+        <button className='delete-button' onClick={() => onDelete(proyecto.id)}>Borrar</button>
     </div>
 }
 
-export default Project
+export default Proyecto

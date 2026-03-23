@@ -3,16 +3,16 @@ from . import views
 from rest_framework_nested import routers
 
 router = routers.DefaultRouter()
-router.register(r'projects', views.ProjectViewSet, basename='project')
-router.register(r'interests', views.InterestViewSet, basename='interest')
-router.register(r'abilities', views.AbilityViewSet, basename='ability')
-router.register(r'categories', views.CategoryViewSet, basename='category')
+router.register(r'proyectos', views.ProyectoViewSet, basename='proyecto')
+router.register(r'intereses', views.InteresViewSet, basename='interes')
+router.register(r'habilidades', views.HabilidadViewSet, basename='habilidad')
+router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'match', views.MatchViewSet, basename='match')
-router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'notificaciones', views.NotificacionViewSet, basename='notificacion')
 
-project_router = routers.NestedDefaultRouter(router, r'projects', lookup='project')
-project_router.register(r'comments', views.CommentViewSet, basename='project-comments')
+proyecto_router = routers.NestedDefaultRouter(router, r'proyectos', lookup='proyecto')
+proyecto_router.register(r'comentarios', views.ComentarioViewSet, basename='proyecto-comentarios')
 
-urlpatterns = router.urls + project_router.urls
+urlpatterns = router.urls + proyecto_router.urls
 
 

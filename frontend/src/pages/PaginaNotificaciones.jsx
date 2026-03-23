@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 /*
 * Componente que representa la página para mostrar notificaciones 
 */
-function NotificationsPage() {
+function PaginaNotificaciones() {
   const [notificaciones, setNotificaciones] = useState([]);
   const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ function NotificationsPage() {
   useEffect(() => {
     const obtenerNotificaciones = async () => {
       try {
-        const res = await api.get('/api/notifications/');
+        const res = await api.get('/api/notificaciones/');
         setNotificaciones(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('Error cargando las notificaciones:', err);
@@ -28,9 +28,9 @@ function NotificationsPage() {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await api.post(`/api/notifications/${id}/mark-read/`);
+      await api.post(`/api/notificaciones/${id}/marcar-leido/`);
       setNotificaciones(prev =>
-        prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
+        prev.map(n => (n.id === id ? { ...n, leido: true } : n))
       );
     } catch (err) {
       console.error('Error al marcar como leída:', err);
@@ -38,8 +38,8 @@ function NotificationsPage() {
   };
 
   const handleNavigate = (notificacion) => {
-    if (notificacion.related_project) {
-      navigate(`/projects/${notificacion.related_project}`);
+    if (notificacion.proyecto_relacionado) {
+      navigate(`/proyectos/${notificacion.proyecto_relacionado}`);
     }
   };
 
@@ -61,18 +61,18 @@ function NotificationsPage() {
         notificaciones.map((n) => (
           <Card
             key={n.id}
-            className={`mb-3 ${!n.is_read ? 'border-primary' : ''}`}
+            className={`mb-3 ${!n.leido ? 'border-primary' : ''}`}
           >
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div onClick={() => handleNavigate(n)} style={{ cursor: 'pointer' }}>
-                  <Card.Text className={n.is_read ? '' : 'fw-bold'}>
-                    {n.message}
+                  <Card.Text className={n.leido ? '' : 'fw-bold'}>
+                    {n.mensaje}
                   </Card.Text>
-                  <small className="text-muted">{new Date(n.created_at).toLocaleString()}</small>
+                  <small className="text-muted">{new Date(n.creado_en).toLocaleString()}</small>
                 </div>
 
-                {!n.is_read && (
+                {!n.leido && (
                   <Button
                     size="sm"
                     variant="outline-primary"
@@ -90,4 +90,4 @@ function NotificationsPage() {
   );
 }
 
-export default NotificationsPage;
+export default PaginaNotificaciones;

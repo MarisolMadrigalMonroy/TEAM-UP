@@ -2,34 +2,34 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
-import ProjectDetail from './components/ProjectDetail'
+import DetalleProyecto from './components/DetalleProyecto'
 import NavigationBar from './components/NavBar'
 import { obtenerUsuarioActual } from './auth'
-import EditProfile from './pages/EditProfile'
-import EditProject from './pages/EditProject'
-import CreateProject from './pages/CreateProject'
+import EditarPerfil from './pages/EditarPerfil'
+import EditarProyecto from './pages/EditarProyecto'
+import CrearProyecto from './pages/CrearProyecto'
 import { useEffect, useState } from 'react'
 import Form from './components/Form'
 import Logout from './components/Logout'
 import { obtenerPerfilUsuario } from './auth';
-import Projects from './pages/Projects';
-import MatchPage from './pages/MatchPage';
-import NotificationsPage from './pages/NotificationsPage'
+import Proyectos from './pages/Proyectos';
+import PaginaMatch from './pages/PaginaMatch';
+import PaginaNotificaciones from './pages/PaginaNotificaciones'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import MatchedUsers from "./pages/MatchedUsers";
-import MatchedMentors from "./pages/MatchedMentors";
+import UsuariosEmparejados from "./pages/UsuariosEmparejados";
+import AsesoresEmparejados from "./pages/AsesoresEmparejados";
 
 /*
 * Componente principal de la aplicación
 */
 function App() {
-  const [user, setUser] = useState(obtenerUsuarioActual());
+  const [usuario, setUsuario] = useState(obtenerUsuarioActual());
 
   useEffect(() => {
     async function cargarUsuario() {
       const perfilUsuario = await obtenerPerfilUsuario();
-      setUser(perfilUsuario);
+      setUsuario(perfilUsuario);
     }
 
     cargarUsuario();
@@ -37,13 +37,13 @@ function App() {
 
   const handleLogout = () => {
     localStorage.clear();
-    setUser(null);
+    setUsuario(null);
   };
 
   return (
     <BrowserRouter>
     {/* Barra de navegación */}
-    <NavigationBar user={user} setUser={setUser} isAuthenticated={!!user} onLogout={handleLogout} />
+    <NavigationBar usuario={usuario} setUsuario={setUsuario} isAuthenticated={!!usuario} onLogout={handleLogout} />
     {/* Contenedor de notificaciones */}
     <ToastContainer position="top-right" autoClose={3000} />
       {/* Colección de rutas */}
@@ -59,7 +59,7 @@ function App() {
         <Route
           path='/login'
           element={
-            <Form route='/api/token/' method='login' setUser={setUser} /> 
+            <Form route='/api/token/' method='login' setUsuario={setUsuario} /> 
           } 
         />
         {/* Cierre de sesión */}
@@ -71,9 +71,9 @@ function App() {
         />
         {/* Registro */}
         <Route
-          path='/register'
+          path='/registro'
           element={
-            <Form route='/api/user/register/' method='register' setUser={setUser} />
+            <Form route='/api/usuario/registro/' method='registro' setUsuario={setUsuario} />
           } 
         />
         {/* No encontrado */}
@@ -85,69 +85,69 @@ function App() {
         />
         {/* Detalle de proyecto */}
         <Route 
-          path="/projects/:id" 
+          path="/proyectos/:id" 
           element={
-            <ProjectDetail />
+            <DetalleProyecto />
           } 
         />
         {/* Editar perfil */}
         <Route 
-          path="/profile/edit" 
+          path="/perfil/editar" 
           element={
-            <EditProfile />
+            <EditarPerfil />
           } 
         />
         {/* Crear proyecto */}
         <Route 
-          path="/projects/create" 
+          path="/proyectos/crear" 
           element={
             <ProtectedRoute>
-              <CreateProject setUser={setUser} />
+              <CrearProyecto setUsuario={setUsuario} />
             </ProtectedRoute>
           } 
         />
         {/* Editar proyecto */}
         <Route 
-          path="/projects/:id/edit" 
+          path="/proyectos/:id/editar" 
           element={
             <ProtectedRoute>
-              <EditProject user={user}/>
+              <EditarProyecto usuario={usuario}/>
             </ProtectedRoute>
           } 
         />
         {/* Proyectos */}
         <Route 
-          path="/projects" 
+          path="/proyectos" 
           element={
-            <Projects />
+            <Proyectos />
           } 
         />
         {/* Encontrar un match */}
         <Route 
           path="/match" 
           element={
-            <MatchPage user={user} />
+            <PaginaMatch usuario={usuario} />
           } 
         />
         {/* Notificaciones */}
         <Route 
-          path="/notifications" 
+          path="/notificaciones" 
           element={
-            <NotificationsPage />
+            <PaginaNotificaciones />
           } 
         />
         {/* Usuarios con match */}
         <Route
-          path="/projects/:id/matched-users"
+          path="/proyectos/:id/usuarios-emparejados"
           element={
-            <MatchedUsers />
+            <UsuariosEmparejados />
           }
         />
         {/* Asesores con match */}
         <Route 
-          path="/projects/:id/matched-mentors"
+          path="/proyectos/:id/asesores-emparejados"
           element={
-            <MatchedMentors />
+            <AsesoresEmparejados />
           } 
         />
       </Routes>

@@ -2,158 +2,158 @@
 
 from django.db.models import F, Q
 from pgvector.django import L2Distance
-from api.models import User, Project, UserMatchInterest, ProjectMatch, ProjectMatchInterest
+from api.models import User, Proyecto, InteresSobreUsuario, Match, InteresSobreProyecto
 from openai import OpenAI
 from django.conf import settings
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-def get_embedding(text):
+def obtener_embedding(texto):
     '''
     Genera la representación vectorial a partir de un texto.
 
     Argumentos:
-        text: Texto a convertir en representación vectorial.
+        texto: Texto a convertir en representación vectorial.
     '''
-    if not text:
+    if not texto:
         return None
     response = client.embeddings.create(
-        input=[text],
+        input=[texto],
         model="text-embedding-3-small"
     )
     return response.data[0].embedding
 
-def build_user_embedding_text(user):
+def construir_texto_embedding_usuario(usuario):
     '''
     Genera el texto base para la creación de la representación vectorial de un usuario.
 
     La representación vectorial toma en cuenta la biografía del usuario, intereses y habilidades.
 
     Argumentos:
-        user: El usuario
+        usuario: El usuario
     '''
-    interest_names = ""
-    ability_names = ""
+    nombres_intereses = ""
+    nombres_habilidades = ""
 
-    if user.pk:
-        interest_names = ", ".join([i.name for i in user.interests.all()])
-        ability_names = ", ".join([a.name for a in user.abilities.all()])
+    if usuario.pk:
+        nombres_intereses = ", ".join([i.nombre for i in usuario.intereses.all()])
+        nombres_habilidades = ", ".join([a.nombre for a in usuario.habilidades.all()])
 
-    return f"{user.bio or ''}\nInterests: {interest_names}\nAbilities: {ability_names}"
+    return f"{usuario.bio or ''}\nIntereses: {nombres_intereses}\nHabilidades: {nombres_habilidades}"
 
-def build_project_embedding_text(project):
+def construir_texto_embedding_proyecto(proyecto):
     '''
     Genera el texto base para la creación de la representación vectorial de un proyecto.
 
     La representación vectorial toma en cuenta el nombre del proyecto, descripción y habilidades requeridas.
 
     Argumentos:
-        project: El proyecto
+        proyecto: El proyecto
     '''
-    ability_names = ', '.join([a.name for a in project.required_abilities.all()])
-    return f"Project Name: {project.name or ''}\nDescription: {project.description or ''}\nRequired Abilities: {ability_names}"
+    nombres_habilidades = ', '.join([a.nombre for a in proyecto.habilidades_requeridas.all()])
+    return f"Proyecto: {proyecto.nombre or ''}\nDescripcion: {proyecto.descripcion or ''}\nHabilidades Requeridas: {nombres_habilidades}"
 
 
-def get_similar_students_for_project(project, top_k=10):
+def obtener_estudiantes_similares_para_proyecto(proyecto, top_k=10):
     '''
     Obtiene estudiantes afines a un proyecto.
 
     Argumentos:
-        project: El proyecto
+        proyecto: El proyecto
         top_k: Cantidad de estudiantes a obtener
     '''
-    if project.embedding is None:
+    if proyecto.embedding is None:
         return User.objects.none()
 
-    excluded_user_ids = set(
-        UserMatchInterest.objects.filter(project=project).values_list('user_id', flat=True)
+    usuarios_excluidos_ids = set(
+        InteresSobreUsuario.objects.filter(proyecto=proyecto).values_list('usuario_id', flat=True)
     ).union(
-        ProjectMatch.objects.filter(project=project).values_list('user_id', flat=True)
+        Match.objects.filter(proyecto=proyecto).values_list('usuario_id', flat=True)
     )
 
     # Excluir asesores y creadores de proyectos
-    project_creators = Project.objects.values_list('creator_id', flat=True)
-    project_mentors = Project.objects.values_list('mentor_id', flat=True)
-    excluded_user_ids.update(project_creators)
-    excluded_user_ids.update(project_mentors)
+    creadores_de_proyecto = Proyecto.objects.values_list('creador_id', flat=True)
+    asesores_de_proyecto = Proyecto.objects.values_list('asesor_id', flat=True)
+    usuarios_excluidos_ids.update(creadores_de_proyecto)
+    usuarios_excluidos_ids.update(asesores_de_proyecto)
 
     # Excluir estudiantes registrados en otros proyectos
-    students_in_projects = User.objects.filter(
-        user_type='student',
-        projects_as_student__isnull=False
+    estudiantes_en_proyectos = User.objects.filter(
+        tipo_usuario='estudiante',
+        proyectos_como_estudiante__isnull=False
     ).values_list('id', flat=True)
-    excluded_user_ids.update(students_in_projects)
+    usuarios_excluidos_ids.update(estudiantes_en_proyectos)
 
-    candidates = User.objects.filter(
-        user_type='student',
+    candidatos = User.objects.filter(
+        tipo_usuario='estudiante',
         embedding__isnull=False
-    ).exclude(id__in=excluded_user_ids)
+    ).exclude(id__in=usuarios_excluidos_ids)
 
-    return candidates.annotate(
-        distance=L2Distance(F('embedding'), project.embedding)
+    return candidatos.annotate(
+        distance=L2Distance(F('embedding'), proyecto.embedding)
     ).order_by('distance')[:top_k]
 
 
-def get_similar_mentors_for_project(project, top_k=10):
+def obtener_asesores_similares_para_proyecto(proyecto, top_k=10):
     '''
     Obtiene asesores afines a un proyecto.
 
     Argumentos:
-        project: El proyecto
+        proyecto: El proyecto
         top_k: Cantidad de asesores a obtener
     '''
-    if project.embedding is None:
+    if proyecto.embedding is None:
         return User.objects.none()
 
     # Excluir a los asesores que ya se les dió me gusta y con los que ya se hizo match
-    excluded_user_ids = set(
-        UserMatchInterest.objects.filter(project=project).values_list('user_id', flat=True)
+    usuarios_excluidos_ids = set(
+        InteresSobreUsuario.objects.filter(proyecto=proyecto).values_list('usuario_id', flat=True)
     ).union(
-        ProjectMatch.objects.filter(project=project).values_list('user_id', flat=True)
+        Match.objects.filter(proyecto=proyecto).values_list('usuario_id', flat=True)
     )
 
-    excluded_user_ids.add(project.creator_id)
+    usuarios_excluidos_ids.add(proyecto.creador_id)
 
-    candidates = User.objects.filter(
-        user_type='mentor',
+    candidatos = User.objects.filter(
+        tipo_usuario='asesor',
         embedding__isnull=False
-    ).exclude(id__in=excluded_user_ids)
+    ).exclude(id__in=usuarios_excluidos_ids)
 
-    return candidates.annotate(
-        distance=L2Distance(F('embedding'), project.embedding)
+    return candidatos.annotate(
+        distance=L2Distance(F('embedding'), proyecto.embedding)
     ).order_by('distance')[:top_k]
 
 
-def get_similar_projects_for_user(user, top_k=10):
+def obtener_proyectos_similares_para_usuario(usuario, top_k=10):
     '''
     Obtiene proyectos afines a un usuario.
 
     Argumentos:
-        user: El usuario
+        usuario: El usuario
         top_k: Cantidad de proyectos a obtener
     '''
-    if user.embedding is None:
-        return Project.objects.none()
+    if usuario.embedding is None:
+        return Proyecto.objects.none()
 
     # Excluir proyectos a los que ya se les dió me gusta
-    excluded_project_ids = set(
-        ProjectMatchInterest.objects.filter(user=user).values_list('project_id', flat=True)
+    proyectos_excluidos_ids = set(
+        InteresSobreProyecto.objects.filter(usuario=usuario).values_list('proyecto_id', flat=True)
     )
 
     # Excluir proyectos con los que ya se hizo match
-    excluded_project_ids.update(
-        ProjectMatch.objects.filter(user=user).values_list('project_id', flat=True)
+    proyectos_excluidos_ids.update(
+        Match.objects.filter(usuario=usuario).values_list('proyecto_id', flat=True)
     )
 
     # Excluir proyectos de los cuales se es creador o mentor
-    excluded_project_ids.update(
-        Project.objects.filter(Q(creator=user) | Q(mentor=user)).values_list('id', flat=True)
+    proyectos_excluidos_ids.update(
+        Proyecto.objects.filter(Q(creador=usuario) | Q(asesor=usuario)).values_list('id', flat=True)
     )
 
-    candidates = Project.objects.filter(
+    candidatos = Proyecto.objects.filter(
         embedding__isnull=False
-    ).exclude(id__in=excluded_project_ids)
+    ).exclude(id__in=proyectos_excluidos_ids)
 
-    return candidates.annotate(
-        distance=L2Distance(F('embedding'), user.embedding)
+    return candidatos.annotate(
+        distance=L2Distance(F('embedding'), usuario.embedding)
     ).order_by('distance')[:top_k]

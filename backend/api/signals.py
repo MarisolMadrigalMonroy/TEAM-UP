@@ -2,12 +2,12 @@
 
 from django.db.models.signals import pre_save, m2m_changed, post_save
 from django.dispatch import receiver
-from .models import User, Project
-from .utils.embedding import get_embedding, build_user_embedding_text, build_project_embedding_text
+from .models import User, Proyecto
+from .utils.embedding import obtener_embedding, construir_texto_embedding_usuario, construir_texto_embedding_proyecto
 import numpy as np
 
 @receiver(post_save, sender=User)
-def update_user_embedding(sender, instance, created, **kwargs):
+def actualizar_embedding_de_usuario(sender, instance, created, **kwargs):
     """
     Recalcula y actualiza la representación vectorial (embedding) para una instancia
     de usuario después de guardarse.
@@ -17,7 +17,7 @@ def update_user_embedding(sender, instance, created, **kwargs):
     vectorial y actualiza el vector si ha cambiado significativamente.
 
     La representación vectorial se actualiza usando 'QuerySet.update()' en lugar de
-    'instance.save()' para evitar activar la misma señal una y otra vez.
+    'instancia.save()' para evitar activar la misma señal una y otra vez.
 
     La comparación usa 'numpy.allclose' con una tolerancia pequeña para evitar
     escrituras innecesarias a la base de datos causadas por pequeñas diferencias
@@ -29,21 +29,21 @@ def update_user_embedding(sender, instance, created, **kwargs):
         created (bool): Si la instancia fue creada o no.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
-    embedding_input = build_user_embedding_text(instance)
-    if not embedding_input:
+    entrada = construir_texto_embedding_usuario(instance)
+    if not entrada:
         return
 
-    new_embedding = get_embedding(embedding_input)
+    nuevo_embedding = obtener_embedding(entrada)
 
     if instance.embedding is None or not np.allclose(
         np.array(instance.embedding),
-        np.array(new_embedding),
+        np.array(nuevo_embedding),
         atol=1e-6
     ):
-        User.objects.filter(pk=instance.pk).update(embedding=new_embedding)
+        User.objects.filter(pk=instance.pk).update(embedding=nuevo_embedding)
 
-@receiver(m2m_changed, sender=User.interests.through)
-def update_user_embedding_on_interests(sender, instance, action, **kwargs):
+@receiver(m2m_changed, sender=User.intereses.through)
+def actualizar_embedding_de_usuario_sobre_intereses(sender, instance, action, **kwargs):
     """
     Actualiza la representación vectorial (embedding) para una instancia
     de usuario si la tabla intermedia de intereses del usuario cambia.
@@ -58,20 +58,20 @@ def update_user_embedding_on_interests(sender, instance, action, **kwargs):
         **kwargs: Argumentos adicionales pasados por la señal.
     """
     if action in ["post_add", "post_remove", "post_clear"]:
-        embedding_input = build_user_embedding_text(instance)
-        if embedding_input:
-            new_embedding = get_embedding(embedding_input)
+        entrada = construir_texto_embedding_usuario(instance)
+        if entrada:
+            nuevo_embedding = obtener_embedding(entrada)
             if instance.embedding is None or not np.allclose(
                 np.array(instance.embedding),
-                np.array(new_embedding),
+                np.array(nuevo_embedding),
                 atol=1e-6
             ):
-                instance.embedding = new_embedding
+                instance.embedding = nuevo_embedding
                 instance.save(update_fields=["embedding"])
 
 
-@receiver(m2m_changed, sender=User.abilities.through)
-def update_user_embedding_on_abilities(sender, instance, action, **kwargs):
+@receiver(m2m_changed, sender=User.habilidades.through)
+def actualizar_embedding_de_usuario_sobre_habilidades(sender, instance, action, **kwargs):
     """
     Actualiza la representación vectorial (embedding) para una instancia
     de usuario si la tabla intermedia de habilidades del usuario cambia.
@@ -86,19 +86,19 @@ def update_user_embedding_on_abilities(sender, instance, action, **kwargs):
         **kwargs: Argumentos adicionales pasados por la señal.
     """
     if action in ["post_add", "post_remove", "post_clear"]:
-        embedding_input = build_user_embedding_text(instance)
-        if embedding_input:
-            new_embedding = get_embedding(embedding_input)
+        entrada = construir_texto_embedding_usuario(instance)
+        if entrada:
+            nuevo_embedding = obtener_embedding(entrada)
             if instance.embedding is None or not np.allclose(
                 np.array(instance.embedding),
-                np.array(new_embedding),
+                np.array(nuevo_embedding),
                 atol=1e-6
             ):
-                instance.embedding = new_embedding
+                instance.embedding = nuevo_embedding
                 instance.save(update_fields=["embedding"])
 
-@receiver(pre_save, sender=Project)
-def update_project_embedding(sender, instance, **kwargs):
+@receiver(pre_save, sender=Proyecto)
+def actualizar_embedding_de_proyecto(sender, instance, **kwargs):
     """
     Recalcula y actualiza la representación vectorial (embedding) para una instancia
     de proyecto.
@@ -111,34 +111,34 @@ def update_project_embedding(sender, instance, **kwargs):
     en valores de punto flotante.
 
     Argumentos:
-        sender (Model): La clase del modelo (Project).
-        instance (Project): La instancia guardada del usuario.
+        sender (Model): La clase del modelo (Proyecto).
+        instance (Proyecto): La instancia guardada del usuario.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
     if not instance.pk:
         return
 
     try:
-        old_instance = Project.objects.get(pk=instance.pk)
-    except Project.DoesNotExist:
+        instancia_anterior = Proyecto.objects.get(pk=instance.pk)
+    except Proyecto.DoesNotExist:
         return
 
-    name_changed = old_instance.name != instance.name
-    description_changed = old_instance.description != instance.description
+    cambio_en_nombre = instancia_anterior.nombre != instance.nombre
+    cambio_en_descripcion = instancia_anterior.descripcion != instance.descripcion
 
-    if name_changed or description_changed:
-        embedding_input = build_project_embedding_text(instance)
-        if embedding_input:
-            new_embedding = get_embedding(embedding_input)
+    if cambio_en_nombre or cambio_en_descripcion:
+        entrada = construir_texto_embedding_proyecto(instance)
+        if entrada:
+            nuevo_embedding = obtener_embedding(entrada)
             if instance.embedding is None or not np.allclose(
                 np.array(instance.embedding),
-                np.array(new_embedding),
+                np.array(nuevo_embedding),
                 atol=1e-6
             ):
-                instance.embedding = new_embedding
+                instance.embedding = nuevo_embedding
 
-@receiver(m2m_changed, sender=Project.required_abilities.through)
-def update_project_embedding_on_abilities(sender, instance, action, **kwargs):
+@receiver(m2m_changed, sender=Proyecto.habilidades_requeridas.through)
+def actualizar_embedding_de_proyecto_sobre_habilidades(sender, instance, action, **kwargs):
     """
     Actualiza la representación vectorial (embedding) para una instancia
     de proyecto si la tabla intermedia de habilidades requeridas del proyecto cambia.
@@ -148,19 +148,19 @@ def update_project_embedding_on_abilities(sender, instance, action, **kwargs):
 
     Argumentos:
         sender (Model): La relación muchos a muchos entre proyecto y habilidades requeridas.
-        instance (Project): La instancia guardada del proyecto.
+        instance (Proyecto): La instancia guardada del proyecto.
         action: La acción que activó la señal.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
     if action in ["post_add", "post_remove", "post_clear"]:
-        embedding_input = build_project_embedding_text(instance)
-        if embedding_input:
-            new_embedding = get_embedding(embedding_input)
+        entrada = construir_texto_embedding_proyecto(instance)
+        if entrada:
+            nuevo_embedding = obtener_embedding(entrada)
 
             if instance.embedding is None or not np.allclose(
                 np.array(instance.embedding),
-                np.array(new_embedding),
+                np.array(nuevo_embedding),
                 atol=1e-6
             ):
-                instance.embedding = new_embedding
+                instance.embedding = nuevo_embedding
                 instance.save(update_fields=["embedding"])

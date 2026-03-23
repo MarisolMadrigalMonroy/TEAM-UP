@@ -1,4 +1,4 @@
-// src/components/SuggestedProjects.jsx
+// src/components/ProyectosSugeridos.jsx
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { Button, Card, Spinner } from 'react-bootstrap';
@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 /*
 * Componente que representa sugerencias de proyectos 
 */
-function SuggestedProjects({ user }) {
+function ProyectosSugeridos({ usuario }) {
   const [sugeridos, setSugeridos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [indiceActual, setIndiceActual] = useState(0);
@@ -16,7 +16,7 @@ function SuggestedProjects({ user }) {
     // Función para obtener sugerencias de proyectos
     const obtenerSugerencias = async () => {
       try {
-        const res = await api.get('/api/match/ai-suggested-projects/');
+        const res = await api.get('/api/match/ai-proyectos-sugeridos/');
         setSugeridos(res.data);
       } catch (err) {
         console.error('Error obteniendo proyectos sugeridos:', err);
@@ -33,12 +33,12 @@ function SuggestedProjects({ user }) {
     const gustado = accion === 'like'; 
 
     try {
-        const res = await api.post(`/api/match/${accion}-project/`, {
-            project: proyecto.id,
-            liked: gustado,
+        const res = await api.post(`/api/match/${accion}-proyecto/`, {
+            proyecto: proyecto.id,
+            gustado: gustado,
             });
-        if (res.data.matched && res.data.match_with) {
-          toast.success(`🎉 Hiciste match con ${res.data.match_with} en "${proyecto.name}"!`);
+        if (res.data.emparejado && res.data.emparejado_con) {
+          toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyecto.nombre}"!`);
         }
         setIndiceActual((prev) => prev + 1);
     } catch (err) {
@@ -54,15 +54,15 @@ function SuggestedProjects({ user }) {
   return (
     <Card className="p-4 shadow-sm">
       <Card.Body>
-        <Card.Title>{proyecto.name}</Card.Title>
-        <Card.Text>{proyecto.description}</Card.Text>
+        <Card.Title>{proyecto.nombre}</Card.Title>
+        <Card.Text>{proyecto.descripcion}</Card.Text>
 
         <div className="d-flex gap-2">
           <Button variant="danger" onClick={() => handleAction('dislike')}>
-            Dislike
+            👎 No Me Gusta
           </Button>
           <Button variant="success" onClick={() => handleAction('like')}>
-            Like
+            👍 Me gusta
           </Button>
         </div>
       </Card.Body>
@@ -70,4 +70,4 @@ function SuggestedProjects({ user }) {
   );
 }
 
-export default SuggestedProjects;
+export default ProyectosSugeridos;
