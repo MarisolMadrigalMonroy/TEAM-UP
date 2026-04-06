@@ -21,7 +21,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
         const res = await api.get('/api/proyectos/');
         const poseidos = res.data.filter(p => {
           const asesorId = typeof p.asesor === 'object' ? p.asesor?.id : p.asesor;
-          return p.creador === usuarioActual?.usuario_id || asesorId === usuarioActual?.usuario_id;
+          return p.creador === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
         });
 
         setProyectosActivos(poseidos);
@@ -35,7 +35,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
     };
 
     obtenerProyectosDeUsuario();
-  }, [usuarioActual?.usuario_id]);
+  }, [usuarioActual?.user_id]);
 
   useEffect(() => {
     const obtenerSugerencias = async () => {
