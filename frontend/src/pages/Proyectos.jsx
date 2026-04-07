@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Card, Button } from 'react-bootstrap';
 import api from '../api';
+import AvatarBubble from "../components/AvatarBubble";
 
 /*
 * Componente que representa la página para mostrar proyectos 
@@ -133,14 +134,55 @@ function PaginaProyectos() {
 
         <Col md={9}>
           <Row>
-            {listaProyectos.length === 0 && <p>No se encontraron proyectos.</p>}
-            {listaProyectos.map(proy => (
+            {listaProyectos.length === 0 && (<p>No se encontraron proyectos.</p>)}
+            {listaProyectos.map((proy) => (
               <Col md={6} lg={4} key={proy.id} className="mb-4">
-                <Card>
-                  <Card.Body>
+                <Card className="h-100 shadow-sm">
+                  <Card.Body className="d-flex flex-column">
                     <Card.Title>{proy.nombre}</Card.Title>
-                    <Card.Text>{proy.descripcion.slice(0, 120)}...</Card.Text>
-                    <Button href={`/proyectos/${proy.id}`} variant="primary">
+
+                    <Card.Text>
+                      {proy.descripcion.slice(0, 120)}...
+                    </Card.Text>
+
+                    {/* Team strip */}{console.log(proy)}
+                    <div className="d-flex gap-2 flex-wrap mt-2 mb-3">
+                      {proy.creador && (
+                        <AvatarBubble
+                          usuario={proy.creador}
+                          rol="creador"
+                          tooltip={`Creador: ${proy.creador.username}`}
+                        />
+                      )}
+
+                      {proy.asesor ? (
+                        <AvatarBubble
+                          usuario={proy.asesor}
+                          rol="asesor"
+                          tooltip={`Asesor: ${proy.asesor.username}`}
+                        />
+                      ) : (
+                        <AvatarBubble
+                          rol="vacante"
+                          placeholder
+                          tooltip="Buscando asesor"
+                        />
+                      )}
+
+                      {proy.estudiantes?.map((est) => (
+                        <AvatarBubble
+                          key={est.id}
+                          usuario={est}
+                          rol="estudiante"
+                          tooltip={`Estudiante: ${est.username}`}
+                        />
+                      ))}
+                    </div>
+
+                    <Button
+                      href={`/proyectos/${proy.id}`}
+                      variant="primary"
+                    >
                       Ver Proyecto
                     </Button>
                   </Card.Body>

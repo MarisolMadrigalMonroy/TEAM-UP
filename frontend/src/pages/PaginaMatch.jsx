@@ -19,7 +19,7 @@ function PaginaMatch({ usuario }) {
       const usuarioId = Number(usuario.id);
 
       const proyectosPoseidos = res.data.filter(proyecto => {
-        const creadorId = proyecto.creador;
+        const creadorId = proyecto.creador?.id;
         const asesorId = typeof proyecto.asesor === 'object'
           ? proyecto.asesor?.id
           : proyecto.asesor;

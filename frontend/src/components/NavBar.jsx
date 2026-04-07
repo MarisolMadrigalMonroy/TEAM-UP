@@ -28,6 +28,12 @@ function NavigationBar({ isAuthenticated, usuario, setUsuario, onLogout }) {
                                 <Nav.Link as={Link} to="/proyectos/crear">Crea Un Proyecto</Nav.Link>
                             )
                         )}
+                        {/* Si el usuario está autenticado y tiene proyectos, puede ver sus proyectos */}
+                        {isAuthenticated && (
+                            (usuario?.proyectos?.length > 0) && (
+                                <Nav.Link as={Link} to="/mis-proyectos">Mis Proyectos</Nav.Link>
+                            )
+                        )}
                         {/* Si está autenticado puede buscar un match */}
                         {isAuthenticated && (
                             <Nav.Link as={Link} to="/match">Encuentra Un Match</Nav.Link>

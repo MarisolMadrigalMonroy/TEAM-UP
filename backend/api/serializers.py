@@ -58,6 +58,7 @@ class ProyectoSerializer(serializers.ModelSerializer):
     )
     estudiantes = UserSerializer(many=True, read_only=True)
     asesor = UserSerializer(read_only=True)
+    creador = UserSerializer(read_only=True)
     detalles_categorias = CategoriaSerializer(many=True, read_only=True, source='categorias')
     detalles_habilidades_requeridas = HabilidadSerializer(many=True, read_only=True, source='habilidades_requeridas')
     tiene_like = serializers.SerializerMethodField()

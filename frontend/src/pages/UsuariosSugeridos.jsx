@@ -21,7 +21,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
         const res = await api.get('/api/proyectos/');
         const poseidos = res.data.filter(p => {
           const asesorId = typeof p.asesor === 'object' ? p.asesor?.id : p.asesor;
-          return p.creador === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
+          return p.creador?.id === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
         });
 
         setProyectosActivos(poseidos);
@@ -101,7 +101,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
   const canLikeOrDislike = useMemo(() => {
     if (!proyectoSeleccionadoObj || !usuarioActual) return false;
 
-    const creadorId = proyectoSeleccionadoObj.creador;
+    const creadorId = proyectoSeleccionadoObj.creador?.id;
     const asesorId =
       typeof proyectoSeleccionadoObj.asesor === 'object'
         ? proyectoSeleccionadoObj.asesor?.id

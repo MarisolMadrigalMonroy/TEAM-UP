@@ -19,6 +19,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UsuariosEmparejados from "./pages/UsuariosEmparejados";
 import AsesoresEmparejados from "./pages/AsesoresEmparejados";
+import MisProyectos from './pages/MisProyectos'
 
 /*
 * Componente principal de la aplicación
@@ -148,6 +149,15 @@ function App() {
           path="/proyectos/:id/asesores-emparejados"
           element={
             <AsesoresEmparejados />
+          } 
+        />
+        {/* Crear proyecto */}
+        <Route 
+          path="/mis-proyectos" 
+          element={
+            <ProtectedRoute>
+              <MisProyectos usuario={usuario} />
+            </ProtectedRoute>
           } 
         />
       </Routes>

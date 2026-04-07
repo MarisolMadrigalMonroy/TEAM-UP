@@ -153,7 +153,7 @@ function DetalleProyecto() {
     // Variable para saber si el usuario es el creador o asesor del proyecto
     const esCreadorOAsesor =
         usuarioActual &&
-        (usuarioActual.id === proyecto.creador || usuarioActual.id === proyecto.asesor?.id);
+        (usuarioActual.id === proyecto.creador?.id || usuarioActual.id === proyecto.asesor?.id);
 
     return (
         <Container fluid className="py-5 px-4">
@@ -205,7 +205,7 @@ function DetalleProyecto() {
                                         {proyecto.estudiantes?.length > 0 ? (
                                             <ul className="list-unstyled mt-2">
                                             {proyecto.estudiantes.map(estudiante => {
-                                                const esCreador = estudiante.id === proyecto.creador;
+                                                const esCreador = estudiante.id === proyecto.creador?.id;
                                                 const esAsesor = proyecto.asesor && estudiante.id === proyecto.asesor.id;
 
                                                 return (
@@ -267,7 +267,7 @@ function DetalleProyecto() {
                                                 </ListGroupItem>
                                                 <ListGroupItem>
                                                     <Link to={`/proyectos/${proyecto.id}/usuarios-emparejados`} className="btn btn-outline-success mt-2 w-100">
-                                                        Ver Estudintes con Match
+                                                        Ver Estudiantes con Match
                                                     </Link>
                                                 </ListGroupItem>
                                                 <ListGroupItem>
@@ -281,7 +281,7 @@ function DetalleProyecto() {
                                     {sesionIniciada && (() => {
                                         const esEstudiante = usuarioActual?.tipo_usuario === "estudiante";
                                         const esAsesor = usuarioActual?.tipo_usuario === "asesor";
-                                        const esPropietario = usuarioActual?.id === proyecto.creador;
+                                        const esPropietario = usuarioActual?.id === proyecto.creador?.id;
                                         const esEstudianteEnUnProyecto = esEstudiante && usuarioActual?.proyectos?.length > 0;
 
                                         if (esPropietario) return null;
