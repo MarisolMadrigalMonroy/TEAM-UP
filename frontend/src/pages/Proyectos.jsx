@@ -145,7 +145,7 @@ function PaginaProyectos() {
                       {proy.descripcion.slice(0, 120)}...
                     </Card.Text>
 
-                    {/* Team strip */}{console.log(proy)}
+                    {/* Team strip */}
                     <div className="d-flex gap-2 flex-wrap mt-2 mb-3">
                       {proy.creador && (
                         <AvatarBubble
