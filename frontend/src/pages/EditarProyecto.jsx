@@ -42,7 +42,7 @@ function EditarProyecto({ usuario }) {
                 const data = proyRes.data;
                 setProyecto(data);
                 if (!usuario || 
-                    (usuario.id !== data.creador && usuario.id !== data.asesor?.id)
+                    (usuario.id !== data.creador?.id && usuario.id !== data.asesor?.id)
                 ) {
                     alert('No estás autorizado para editar este proyecto.');
                     navigate(`/proyectos/${id}`);
