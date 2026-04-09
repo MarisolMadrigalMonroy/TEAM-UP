@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Card, Button } from 'react-bootstrap';
 import api from '../api';
 import AvatarBubble from "../components/AvatarBubble";
+import {
+  FaLightbulb,
+  FaGraduationCap,
+  FaTools
+} from "react-icons/fa";
 
 /*
 * Componente que representa la página para mostrar proyectos 
@@ -81,7 +86,7 @@ function PaginaProyectos() {
 
       <Row>
         <Col md={3}>
-          <Form className="sticky-top" style={{ top: '80px' }}>
+          <Form className="sticky-top" style={{ top: '80px' }} onSubmit={(e) => e.preventDefault()}>
             <Form.Group className="mb-3">
               <Form.Label>Buscar</Form.Label>
               <Form.Control
@@ -146,42 +151,49 @@ function PaginaProyectos() {
                     </Card.Text>
 
                     {/* Team strip */}
-                    <div className="d-flex gap-2 flex-wrap mt-2 mb-3">
-                      {proy.creador && (
-                        <AvatarBubble
-                          usuario={proy.creador}
-                          rol="creador"
-                          tooltip={`Creador: ${proy.creador.username}`}
-                        />
-                      )}
+                    <div className="mt-3">
+                      <div className="d-flex align-items-center gap-2 mb-2">
+                        <FaLightbulb size={24} className="me-1" title="Creador" />
+                        {proy.creador && (
+                          <AvatarBubble
+                            usuario={proy.creador}
+                            rol="creador"
+                          />
+                        )}
+                      </div>
 
-                      {proy.asesor ? (
-                        <AvatarBubble
-                          usuario={proy.asesor}
-                          rol="asesor"
-                          tooltip={`Asesor: ${proy.asesor.username}`}
-                        />
-                      ) : (
-                        <AvatarBubble
-                          rol="vacante"
-                          placeholder
-                          tooltip="Buscando asesor"
-                        />
-                      )}
+                      <div className="d-flex align-items-center gap-2 mb-2">
+                        <FaGraduationCap size={24} className="me-1" title="Asesor" />
+                        {proy.asesor ? (
+                          <AvatarBubble
+                            usuario={proy.asesor}
+                            rol="asesor"
+                          />
+                        ) : (
+                          <AvatarBubble
+                            rol="vacante"
+                            placeholder
+                            tooltip="Buscando asesor"
+                          />
+                        )}
+                      </div>
 
-                      {proy.estudiantes?.map((est) => (
-                        <AvatarBubble
-                          key={est.id}
-                          usuario={est}
-                          rol="estudiante"
-                          tooltip={`Estudiante: ${est.username}`}
-                        />
-                      ))}
+                      <div className="d-flex align-items-center gap-2">
+                        <FaTools size={24} className="me-1" title="Equipo" />
+                        {proy.estudiantes?.map((est) => (
+                          <AvatarBubble
+                            key={est.id}
+                            usuario={est}
+                            rol="estudiante"
+                          />
+                        ))}
+                      </div>
                     </div>
 
                     <Button
                       href={`/proyectos/${proy.id}`}
                       variant="primary"
+                      className="mt-auto"
                     >
                       Ver Proyecto
                     </Button>
