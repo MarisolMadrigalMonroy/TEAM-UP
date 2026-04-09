@@ -95,7 +95,9 @@ function App() {
         <Route 
           path="/perfil/editar" 
           element={
-            <EditarPerfil />
+            <ProtectedRoute>
+              <EditarPerfil />
+            </ProtectedRoute>
           } 
         />
         {/* Crear proyecto */}
@@ -127,28 +129,36 @@ function App() {
         <Route 
           path="/match" 
           element={
-            <PaginaMatch usuario={usuario} />
+            <ProtectedRoute>
+              <PaginaMatch usuario={usuario} />
+            </ProtectedRoute>
           } 
         />
         {/* Notificaciones */}
         <Route 
           path="/notificaciones" 
           element={
-            <PaginaNotificaciones />
+            <ProtectedRoute>
+              <PaginaNotificaciones />
+            </ProtectedRoute>
           } 
         />
         {/* Usuarios con match */}
         <Route
           path="/proyectos/:id/usuarios-emparejados"
           element={
-            <UsuariosEmparejados />
+            <ProtectedRoute>
+              <UsuariosEmparejados />
+            </ProtectedRoute>
           }
         />
         {/* Asesores con match */}
         <Route 
           path="/proyectos/:id/asesores-emparejados"
           element={
-            <AsesoresEmparejados />
+            <ProtectedRoute>
+              <AsesoresEmparejados />
+            </ProtectedRoute>
           } 
         />
         {/* Crear proyecto */}
