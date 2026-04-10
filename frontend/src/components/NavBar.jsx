@@ -3,7 +3,15 @@ import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import NotificationsDropdown from './NotificationsDropdown';
 
-function NavigationBar({ isAuthenticated, usuario, setUsuario, onLogout }) {
+function NavigationBar({
+    isAuthenticated,
+    usuario,
+    setUsuario,
+    onLogout,
+    notificaciones,
+    setNotificaciones,
+    refrescarNotificaciones
+}) {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -30,7 +38,7 @@ function NavigationBar({ isAuthenticated, usuario, setUsuario, onLogout }) {
                         )}
                         {/* Si el usuario está autenticado y tiene proyectos, puede ver sus proyectos */}
                         {isAuthenticated && (
-                            (usuario?.proyectos?.length > 0) && (
+                            (usuario?.tipo_usuario === 'asesor' || usuario?.proyectos?.length > 0) && (
                                 <Nav.Link as={Link} to="/mis-proyectos">Mis Proyectos</Nav.Link>
                             )
                         )}
@@ -49,7 +57,11 @@ function NavigationBar({ isAuthenticated, usuario, setUsuario, onLogout }) {
                             </>
                         ) : (
                             <>
-                            <NotificationsDropdown />
+                            <NotificationsDropdown
+                                notificaciones={notificaciones}
+                                setNotificaciones={setNotificaciones}
+                                refrescarNotificaciones={refrescarNotificaciones}
+                            />
                             <NavDropdown title="Cuenta" id="account-dropdown" align="end">
                                 <NavDropdown.Item as={Link} to="/perfil/editar">Perfil</NavDropdown.Item>
                                 <NavDropdown.Divider />

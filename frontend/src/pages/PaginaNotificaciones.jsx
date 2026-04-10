@@ -6,25 +6,11 @@ import { useNavigate } from 'react-router-dom';
 /*
 * Componente que representa la página para mostrar notificaciones 
 */
-function PaginaNotificaciones() {
-  const [notificaciones, setNotificaciones] = useState([]);
-  const [cargando, setCargando] = useState(true);
+function PaginaNotificaciones({
+  notificaciones,
+  setNotificaciones
+}) {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const obtenerNotificaciones = async () => {
-      try {
-        const res = await api.get('/api/notificaciones/');
-        setNotificaciones(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error('Error cargando las notificaciones:', err);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    obtenerNotificaciones();
-  }, []);
 
   const handleMarkAsRead = async (id) => {
     try {
@@ -38,18 +24,15 @@ function PaginaNotificaciones() {
   };
 
   const handleNavigate = (notificacion) => {
+    if (notificacion.usuario_relacionado) {
+      navigate(`/usuarios/${notificacion.usuario_relacionado}`);
+      return;
+    }
+
     if (notificacion.proyecto_relacionado) {
       navigate(`/proyectos/${notificacion.proyecto_relacionado}`);
     }
   };
-
-  if (cargando) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner animation="border" />
-      </Container>
-    );
-  }
 
   return (
     <Container className="py-5">

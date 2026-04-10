@@ -207,6 +207,13 @@ class Notificacion(models.Model):
         blank=True,
         related_name='notificaciones'
     )
+    usuario_relacionado = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notificaciones_generadas'
+    )
 
     class Meta:
         ordering = ['-creado_en']

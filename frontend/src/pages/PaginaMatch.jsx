@@ -11,33 +11,34 @@ function PaginaMatch({ usuario }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-  if (!usuario?.id) return;
+    if (!usuario?.id) return;
 
-  const validarPropiedad = async () => {
-    try {
-      const res = await api.get('/api/proyectos/');
-      const usuarioId = Number(usuario.id);
+    const validarPropiedad = async () => {
+      try {
+        const res = await api.get('/api/proyectos/');
+        const usuarioId = Number(usuario.id);
 
-      const proyectosPoseidos = res.data.filter(proyecto => {
-        const creadorId = proyecto.creador?.id;
-        const asesorId = typeof proyecto.asesor === 'object'
-          ? proyecto.asesor?.id
-          : proyecto.asesor;
+        const proyectosPoseidos = res.data.filter(proyecto => {
+          const creadorId = proyecto.creador?.id;
+          const asesorId = typeof proyecto.asesor === 'object'
+            ? proyecto.asesor?.id
+            : proyecto.asesor;
 
-        return creadorId === usuarioId || asesorId === usuarioId;
-      });
+          return creadorId === usuarioId || asesorId === usuarioId;
+        });
+        console.log(usuario)
 
-      setPoseeProyectos(proyectosPoseidos.length > 0);
-    } catch (err) {
-      console.error('Error obteniendo proyectos:', err);
-      setPoseeProyectos(false);
-    } finally {
-      setCargando(false);
-    }
-  };
+        setPoseeProyectos(proyectosPoseidos.length > 0);
+      } catch (err) {
+        console.error('Error obteniendo proyectos:', err);
+        setPoseeProyectos(false);
+      } finally {
+        setCargando(false);
+      }
+    };
 
-  validarPropiedad();
-}, [usuario?.id]);
+    validarPropiedad();
+  }, [usuario?.id]);
 
 
   if (cargando) {

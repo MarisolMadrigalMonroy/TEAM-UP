@@ -7,29 +7,12 @@ import api from '../api';
 /*
 * Componente para notificaciones
 */
-function NotificationsDropdown() {
-  const [notificaciones, setNotificaciones] = useState([]);
-  const [cargando, setCargando] = useState(true);
+function NotificationsDropdown({
+  notificaciones,
+  setNotificaciones,
+  refrescarNotificaciones
+}) {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const obtenerNotificaciones = async () => {
-      try {
-        const res = await api.get('/api/notificaciones/?limit=5');
-
-        // Si la respuesta de la API tiene notificaciones las guardamos, sino usamos una lista vacía
-        setNotificaciones(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error('Error obteniendo notificaciones:', err);
-        setNotificaciones([]);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    obtenerNotificaciones();
-  }, []);
-
   const sinLeer = notificaciones.filter(n => !n.leido).length;
 
   const handleNotificationClick = async (notificacion) => {
@@ -48,6 +31,11 @@ function NotificationsDropdown() {
       }
     }
 
+    if (notificacion.usuario_relacionado) {
+      navigate(`/usuarios/${notificacion.usuario_relacionado}`);
+      return;
+    }
+
     if (notificacion.proyecto_relacionado) {
       /* Si la notificación tiene un proyecto asociado, navegamos hacia el proyecto */
       navigate(`/proyectos/${notificacion.proyecto_relacionado}`);
@@ -55,7 +43,12 @@ function NotificationsDropdown() {
   };
 
   return (
-    <Dropdown align="end">
+    <Dropdown 
+      align="end"
+      onToggle={(isOpen) => {
+        if (isOpen) refrescarNotificaciones();
+      }}
+    >
       <Dropdown.Toggle variant="light" id="dropdown-notifications">
         🔔 {/* Indicamos la cantidad de notificaciones sin leer */}
         {sinLeer > 0 && (
@@ -68,11 +61,6 @@ function NotificationsDropdown() {
       <Dropdown.Menu style={{ minWidth: '300px' }}>
         <Dropdown.Header>Notificaciones</Dropdown.Header>
 
-        {cargando ? (
-          <div className="text-center p-2">
-            <Spinner animation="border" size="sm" /> Cargando...
-          </div>
-        ) : (
           <>
             {/* Si no hay notificaciones lo indicamos textualmente, en otro caso desplegamos las notificaciones */}
             {sinLeer === 0 ? (
@@ -95,7 +83,6 @@ function NotificationsDropdown() {
               Ver todas las notificaciones →
             </Dropdown.Item>
           </>
-        )}
       </Dropdown.Menu>
     </Dropdown>
   );

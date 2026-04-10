@@ -20,12 +20,38 @@ import 'react-toastify/dist/ReactToastify.css';
 import UsuariosEmparejados from "./pages/UsuariosEmparejados";
 import AsesoresEmparejados from "./pages/AsesoresEmparejados";
 import MisProyectos from './pages/MisProyectos'
+import api from './api';
+import PerfilPublico from "./pages/PerfilPublico";
 
 /*
 * Componente principal de la aplicación
 */
 function App() {
   const [usuario, setUsuario] = useState(obtenerUsuarioActual());
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false);
+
+  const obtenerNotificaciones = async () => {
+    if (!usuario) return;
+
+    setCargandoNotificaciones(true);
+
+    try {
+      const res = await api.get('/api/notificaciones/');
+      setNotificaciones(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error cargando notificaciones:', err);
+      setNotificaciones([]);
+    } finally {
+      setCargandoNotificaciones(false);
+    }
+  };
+
+  useEffect(() => {
+    if (usuario) {
+      obtenerNotificaciones();
+    }
+  }, [usuario]);
 
   useEffect(() => {
     async function cargarUsuario() {
@@ -43,17 +69,25 @@ function App() {
 
   return (
     <BrowserRouter>
-    {/* Barra de navegación */}
-    <NavigationBar usuario={usuario} setUsuario={setUsuario} isAuthenticated={!!usuario} onLogout={handleLogout} />
-    {/* Contenedor de notificaciones */}
-    <ToastContainer position="top-right" autoClose={3000} />
+      {/* Barra de navegación */}
+      <NavigationBar
+        usuario={usuario}
+        setUsuario={setUsuario}
+        isAuthenticated={!!usuario}
+        onLogout={handleLogout}
+        notificaciones={notificaciones}
+        setNotificaciones={setNotificaciones}
+        refrescarNotificaciones={obtenerNotificaciones}
+      />
+      {/* Contenedor de notificaciones */}
+      <ToastContainer position="top-right" autoClose={3000} />
       {/* Colección de rutas */}
       <Routes>
         {/* Home */}
         <Route
           path='/'
           element={
-              <Home /> 
+            <Home /> 
           } 
         />
         {/* Inició de sesión */}
@@ -139,7 +173,11 @@ function App() {
           path="/notificaciones" 
           element={
             <ProtectedRoute>
-              <PaginaNotificaciones />
+              <PaginaNotificaciones
+                notificaciones={notificaciones}
+                setNotificaciones={setNotificaciones}
+                refrescarNotificaciones={obtenerNotificaciones}
+              />
             </ProtectedRoute>
           } 
         />
@@ -169,6 +207,14 @@ function App() {
               <MisProyectos usuario={usuario} />
             </ProtectedRoute>
           } 
+        />
+        <Route
+          path="/usuarios/:id"
+          element={
+            <ProtectedRoute>
+              <PerfilPublico usuario={usuario} />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </BrowserRouter>

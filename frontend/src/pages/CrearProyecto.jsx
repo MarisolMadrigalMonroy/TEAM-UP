@@ -55,7 +55,7 @@ function CrearProyecto({ setUsuario }) {
         try {
             const res = await api.post('/api/proyectos/', {
                 nombre: nombre,
-                description: descripcion,
+                descripcion: descripcion,
                 categorias: categoriasSeleccionadas,
                 habilidades_requeridas: habilidadesSeleccionadas
             });

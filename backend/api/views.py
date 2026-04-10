@@ -2,7 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render
 from .models import Habilidad, Comentario, Interes, Proyecto, User, Categoria, Notificacion, InteresSobreProyecto, InteresSobreUsuario, Match
 from rest_framework import generics, viewsets, status, permissions
-from .serializers import HabilidadSerializer, ComentarioSerializer, InteresSerializer, ProyectoSerializer, UserSerializer, PerfilUsuarioSerializer, CategoriaSerializer, InteresSobreProyectoSerializer, InteresSobreUsuarioSerializer, NotificacionSerializer
+from .serializers import HabilidadSerializer, ComentarioSerializer, InteresSerializer, ProyectoSerializer, UserSerializer, PerfilUsuarioSerializer, CategoriaSerializer, InteresSobreProyectoSerializer, InteresSobreUsuarioSerializer, NotificacionSerializer, PerfilPublicoSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, BasePermission, SAFE_METHODS
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -472,6 +472,20 @@ class MatchViewSet(viewsets.ViewSet):
 
         # Si el usuario le dio me gusta al proyecto
         if gustado:
+            # Obtenemos el asesor o creador a quien se le dará la notificación
+            receptor = proyecto.asesor or proyecto.creador
+
+            if receptor and receptor != usuario:
+                Notificacion.objects.create(
+                    receptor=receptor,
+                    mensaje=(
+                        f"'{usuario.username}' mostró interés en "
+                        f"tu proyecto '{proyecto.nombre}'."
+                    ),
+                    proyecto_relacionado=proyecto,
+                    usuario_relacionado=usuario
+                )
+
             reciproco = InteresSobreUsuario.objects.filter(
                 proyecto=proyecto,
                 usuario=usuario,
@@ -483,8 +497,6 @@ class MatchViewSet(viewsets.ViewSet):
                 Match.objects.get_or_create(usuario=usuario, proyecto=proyecto)
                 emparejado = True
 
-                # Obtenemos el asesor o creador a quien se le dará la notificación
-                receptor = proyecto.asesor or proyecto.creador
                 if receptor:
                     # Se crea la notificación
                     Notificacion.objects.create(
@@ -574,6 +586,15 @@ class MatchViewSet(viewsets.ViewSet):
 
         # Si desde el proyecto se le dió me gusta al usuario
         if gustado:
+            Notificacion.objects.create(
+                receptor=usuario_por_gustar,
+                mensaje=(
+                    f"¡Al proyecto '{proyecto.nombre}' "
+                    f"le interesó tu perfil!"
+                ),
+                proyecto_relacionado=proyecto
+            )
+
             reciproco = InteresSobreProyecto.objects.filter(
                 usuario=usuario_por_gustar,
                 proyecto=proyecto,
@@ -605,7 +626,6 @@ class MatchViewSet(viewsets.ViewSet):
             'emparejado_con': emparejado_con,
             'proyecto_id': proyecto.id
         }, status=status.HTTP_200_OK)
-
 
     @action(detail=False, methods=['post'], url_path='dislike-usuario')
     def dislike_usuario(self, request):
@@ -703,6 +723,19 @@ class MatchViewSet(viewsets.ViewSet):
             context={"request": request}
         )
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='interes-usuario')
+    def interes_usuario(self, request):
+        usuario_id = request.query_params.get('usuario')
+        proyecto_id = request.query_params.get('proyecto')
+
+        existe = InteresSobreUsuario.objects.filter(
+            usuario_id=usuario_id,
+            proyecto_id=proyecto_id,
+            gustado=True
+        ).exists()
+
+        return Response({'gustado': existe})
 
 class NotificacionViewSet(viewsets.ModelViewSet):
     '''
@@ -734,3 +767,15 @@ class NotificacionViewSet(viewsets.ModelViewSet):
             return Response({'status': 'marcada como leída'})
         except:
             return Response({'error': 'Notificación no encontrada'}, status=404)
+
+class PerfilPublicoView(generics.RetrieveAPIView):
+    queryset = User.objects.prefetch_related(
+        'intereses',
+        'habilidades',
+        'proyectos_creados',
+        'proyectos_asesorados',
+        'proyectos_como_estudiante'
+    )
+
+    serializer_class = PerfilPublicoSerializer
+    permission_classes = [IsAuthenticated]

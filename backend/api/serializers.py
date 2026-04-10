@@ -170,11 +170,14 @@ class MatchSerializer(serializers.ModelSerializer):
 
 class NotificacionSerializer(serializers.ModelSerializer):
     nombre_proyecto_relacionado = serializers.CharField(source='proyecto_relacionado.nombre', read_only=True)
+    username_usuario_relacionado = serializers.CharField(source='usuario_relacionado.username', read_only=True)
 
     class Meta:
         model = Notificacion
-        fields = ['id', 'mensaje', 'leido', 'creado_en', 'proyecto_relacionado', 'nombre_proyecto_relacionado']
-        read_only_fields = ['id', 'creado_en', 'nombre_proyecto_relacionado']
+        fields = [
+            'id', 'mensaje', 'leido', 'creado_en', 'proyecto_relacionado', 'nombre_proyecto_relacionado',
+            'usuario_relacionado', 'username_usuario_relacionado']
+        read_only_fields = ['id', 'creado_en', 'nombre_proyecto_relacionado', 'username_usuario_relacionado']
 
 class DetalleUsuarioSerializer(serializers.ModelSerializer):
     habilidades = HabilidadSerializer(many=True)
@@ -184,3 +187,40 @@ class DetalleUsuarioSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'bio', 'habilidades', 'intereses']
 
+class ProyectoMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proyecto
+        fields = ['id', 'nombre']
+
+class PerfilPublicoSerializer(serializers.ModelSerializer):
+    intereses = InteresSerializer(many=True, read_only=True)
+    habilidades = HabilidadSerializer(many=True, read_only=True)
+    proyectos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'tipo_usuario',
+            'estado',
+            'bio',
+            'intereses',
+            'habilidades',
+            'proyectos'
+        ]
+
+    def get_proyectos(self, obj):
+        proyectos = (
+            list(obj.proyectos_creados.all()) +
+            list(obj.proyectos_asesorados.all()) +
+            list(obj.proyectos_como_estudiante.all())
+        )
+
+        # eliminar duplicados por id
+        proyectos_unicos = {p.id: p for p in proyectos}.values()
+
+        return ProyectoMiniSerializer(
+            proyectos_unicos,
+            many=True
+        ).data
