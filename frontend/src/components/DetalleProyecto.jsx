@@ -161,7 +161,9 @@ function DetalleProyecto() {
                 <Col lg={10} xl={9}>
                     {/* Encabezado tipo blog */}
                     <header className="pb-3 mb-4 border-bottom">
-                        <h1 className="display-4">{proyecto.nombre}</h1>
+                        <h1 className="display-4" style={{wordBreak: 'break-word', overflowWrap: 'break-word',}}>
+                            {proyecto.nombre}
+                        </h1>
                         <p
                             className="lead"
                             style={{
