@@ -90,7 +90,12 @@ function MisProyectos({ usuario }) {
                 <Card.Subtitle className="mb-2 text-muted">
                     Rol: {obtenerRol(proy)}
                 </Card.Subtitle>
-                <Card.Text>
+                <Card.Text
+                  style={{
+                    whiteSpace: 'pre-line',
+                    lineHeight: '1.8'
+                  }}
+                >
                   {proy.descripcion}
                 </Card.Text>
                 <Button

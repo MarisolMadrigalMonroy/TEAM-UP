@@ -146,7 +146,12 @@ function PaginaProyectos() {
                   <Card.Body className="d-flex flex-column">
                     <Card.Title>{proy.nombre}</Card.Title>
 
-                    <Card.Text>
+                    <Card.Text
+                      style={{
+                        whiteSpace: 'pre-line',
+                        lineHeight: '1.8'
+                      }}
+                    >
                       {proy.descripcion.slice(0, 120)}...
                     </Card.Text>
 
@@ -189,7 +194,6 @@ function PaginaProyectos() {
                         ))}
                       </div>
                     </div>
-
                     <Button
                       href={`/proyectos/${proy.id}`}
                       variant="primary"

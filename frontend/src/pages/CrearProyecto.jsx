@@ -17,6 +17,7 @@ function CrearProyecto({ setUsuario }) {
     const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [error, setError] = useState(null);
     const [cargando, setCargando] = useState(true);
+    const [errorMensaje, setErrorMensaje] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -51,6 +52,12 @@ function CrearProyecto({ setUsuario }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMensaje('');
+
+        if (!descripcion.trim()) {
+            setErrorMensaje('La descripción del proyecto es obligatoria.');
+            return;
+        }
 
         try {
             const res = await api.post('/api/proyectos/', {
@@ -64,7 +71,7 @@ function CrearProyecto({ setUsuario }) {
             navigate(`/proyectos/${res.data.id}`);
         } catch (err) {
             console.error(err);
-            setError('No se pudo crear el proyecto.');
+            setErrorMensaje('No se pudo crear el proyecto.');
         }
     };
 
@@ -80,7 +87,15 @@ function CrearProyecto({ setUsuario }) {
     return (
         <Container className="py-5">
             <h2 className="mb-4">Crea un Proyecto</h2>
-            {error && <Alert variant="danger">{error}</Alert>}
+            {errorMensaje && (
+                <Alert
+                    variant="danger"
+                    dismissible
+                    onClose={() => setErrorMensaje('')}
+                >
+                    {errorMensaje}
+                </Alert>
+            )}
             <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                     <Form.Label>Nombre del Proyecto</Form.Label>
@@ -99,7 +114,7 @@ function CrearProyecto({ setUsuario }) {
                         rows={5}
                         value={descripcion}
                         onChange={e => setDescripcion(e.target.value)}
-                        required
+                        isInvalid={!!errorMensaje && !descripcion.trim()}
                     />
                 </Form.Group>
 

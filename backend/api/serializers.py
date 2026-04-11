@@ -110,6 +110,12 @@ class ProyectoSerializer(serializers.ModelSerializer):
             gustado=True
         ).exists()
 
+    def validate_descripcion(self, value):
+        if not value.strip():
+            raise serializers.ValidationError(
+                "La descripción no puede estar vacía."
+            )
+        return value
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())

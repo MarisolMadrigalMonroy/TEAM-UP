@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { Button, Card, Spinner } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { FaHeart, FaHeartBroken } from 'react-icons/fa';
 
 /*
 * Componente que representa sugerencias de proyectos 
@@ -55,14 +56,23 @@ function ProyectosSugeridos({ usuario }) {
     <Card className="p-4 shadow-sm">
       <Card.Body>
         <Card.Title>{proyecto.nombre}</Card.Title>
-        <Card.Text>{proyecto.descripcion}</Card.Text>
+        <Card.Text
+          style={{
+          whiteSpace: 'pre-line',
+          lineHeight: '1.8'
+        }}
+        >
+          {proyecto.descripcion}
+        </Card.Text>
 
         <div className="d-flex gap-2">
-          <Button variant="danger" onClick={() => handleAction('dislike')}>
-            👎 No Me Gusta
+          <Button variant="outline-danger" onClick={() => handleAction('dislike')}>
+            <FaHeartBroken className="text-danger me-2" />
+              No me gusta
           </Button>
-          <Button variant="success" onClick={() => handleAction('like')}>
-            👍 Me gusta
+          <Button variant="outline-success" onClick={() => handleAction('like')}>
+            <FaHeart className="text-danger me-2" />
+              Me gusta
           </Button>
         </div>
       </Card.Body>

@@ -3,6 +3,7 @@ import { Card, Button, Spinner, Container, Row, Col, Form, Alert } from 'react-b
 import api from '../api';
 import { obtenerUsuarioActual } from '../auth';
 import { toast } from 'react-toastify';
+import { FaHeart, FaHeartBroken } from 'react-icons/fa';
 
 /*
 * Componente que representa sugerencias de usuarios
@@ -161,8 +162,15 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
 
                 {canLikeOrDislike && (
                   <div className="d-flex justify-content-between">
-                    <Button variant="success" onClick={() => handleLike(usuario.id)}>👍 Me gusta</Button>
-                    <Button variant="danger" onClick={() => handleDislike(usuario.id)}>👎 No Me Gusta</Button>
+                    <Button variant="outline-danger" onClick={() => handleDislike(usuario.id)}>
+                      <FaHeartBroken className="text-danger me-2" />
+                        No me gusta
+                    </Button>
+                    <Button variant="outline-success" onClick={() => handleLike(usuario.id)}>
+                      <FaHeart className="text-danger me-2" />
+                        Me gusta
+                    </Button>
+                    
                   </div>
                 )}
               </Card.Body>
