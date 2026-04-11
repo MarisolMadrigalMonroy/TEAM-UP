@@ -59,6 +59,11 @@ function CrearProyecto({ setUsuario }) {
             return;
         }
 
+        if (descripcion.trim().length < 5) {
+            setErrorMensaje('La descripción debe tener al menos 5 caracteres.');
+            return;
+        }
+
         if (!nombre.trim()) {
             setErrorMensaje('El nombre del proyecto es obligatorio.');
             return;
