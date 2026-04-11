@@ -92,6 +92,17 @@ function EditarProyecto({ usuario }) {
             setErrorMensaje('El nombre del proyecto es obligatorio.');
             return;
         }
+
+        if (categoriasSeleccionadas.length === 0) {
+            setErrorMensaje('Selecciona al menos una categoría.');
+            return;
+        }
+
+        if (habilidadesSeleccionadas.length === 0) {
+            setErrorMensaje('Selecciona al menos una habilidad requerida.');
+            return;
+        }
+
         try {
             await api.put(`/api/proyectos/${id}/`, {
                 nombre: nombre,

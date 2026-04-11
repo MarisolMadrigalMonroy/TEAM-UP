@@ -69,6 +69,16 @@ function CrearProyecto({ setUsuario }) {
             return;
         }
 
+        if (categoriasSeleccionadas.length === 0) {
+            setErrorMensaje('Selecciona al menos una categoría.');
+            return;
+        }
+
+        if (habilidadesSeleccionadas.length === 0) {
+            setErrorMensaje('Selecciona al menos una habilidad requerida.');
+            return;
+        }
+
         try {
             const res = await api.post('/api/proyectos/', {
                 nombre: nombre,

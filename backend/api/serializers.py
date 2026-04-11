@@ -124,6 +124,20 @@ class ProyectoSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_categorias(self, value):
+        if value is not None and len(value) == 0:
+            raise serializers.ValidationError({
+                'Selecciona al menos una categoría.'
+            })
+        return value
+
+    def validate_habilidades_requeridas(self, value):
+        if value is not None and len(value) == 0:
+            raise serializers.ValidationError({
+                'Selecciona al menos una habilidade requerida.'
+            })
+        return value
+
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())
     habilidades = serializers.PrimaryKeyRelatedField(many=True, queryset=Habilidad.objects.all())

@@ -24,6 +24,12 @@ function Form({ route, method, setUsuario }) {
         setCargando(true)
         setErrorMensaje('')
 
+        if (nombreUsuario.trim().length < 5) {
+            setErrorMensaje('El nombre de usuario debe tener al menos 5 caracteres.');
+            setCargando(false)
+            return;
+        }
+
         try {
             const payload =
                 method === 'login'
