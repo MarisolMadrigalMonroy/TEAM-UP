@@ -18,6 +18,7 @@ function Form({ route, method, setUsuario }) {
     const navigate = useNavigate()
 
     const titulo = method === 'login' ? 'Iniciar Sesión' : 'Registro'
+    //const usernameRegex = /^[a-zA-Z]{3,}\.[a-zA-Z]{3,}\d*@(?:alumnos|academicos)\.(udg)\.(mx)$/;
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -30,6 +31,14 @@ function Form({ route, method, setUsuario }) {
             return;
         }
 
+        /*if (method === 'registro' && !usernameRegex.test(nombreUsuario)) {
+            setErrorMensaje(
+                'Usa tu correo institucional'
+            );
+            setCargando(false);
+            return;
+            }*/
+
         try {
             const payload =
                 method === 'login'
@@ -38,7 +47,7 @@ function Form({ route, method, setUsuario }) {
                           username: nombreUsuario,
                           password,
                           tipo_usuario: tipoUsuario,
-                          estado,
+                          estado: "disponible",
                           intereses: [],
                           habilidades: [],
                       }
@@ -123,6 +132,7 @@ function Form({ route, method, setUsuario }) {
                         <option value="asesor">Asesor</option>
                     </select>
 
+                    {/*
                     <select
                         className="form-input"
                         value={estado}
@@ -131,7 +141,7 @@ function Form({ route, method, setUsuario }) {
                         <option value="disponible">Buscando Proyecto</option>
                         <option value="registrado">En un Proyecto</option>
                         <option value="inactivo">No Estoy Buscando Proyecto</option>
-                    </select>
+                    </select> */}
                 </>
             )}
 

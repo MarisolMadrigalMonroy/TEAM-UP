@@ -13,7 +13,7 @@ function EditarPerfil() {
     const [interesesSeleccionados, setInteresesSeleccionados] = useState([]);
     const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [bio, setBio] = useState('');
-    const [estadoOriginal, setEstadoOriginal] = useState('');
+    //const [estadoOriginal, setEstadoOriginal] = useState('');
     const [interesesOriginales, setInteresesOriginales] = useState([]);
     const [habilidadesOriginales, setHabilidadesOriginales] = useState([]);
     const [bioOriginal, setBioOriginal] = useState('');
@@ -34,13 +34,13 @@ function EditarPerfil() {
                 setHabilidadesSeleccionadas(usuarioRes.data.habilidades || []);
                 setBio(usuarioRes.data.bio || '');
 
-                if (usuarioRes.data.estado==='disponible') {
+                /*if (usuarioRes.data.estado==='disponible') {
                     setEstadoOriginal('Buscando Proyecto');
                 } else if (usuarioRes.data.estado==='registrado') {
                     setEstadoOriginal('En un Proyecto');
                 } else {
                     setEstadoOriginal('No Estoy Buscando Proyecto');
-                }
+                }*/
                 
                 setInteresesOriginales(usuarioRes.data.intereses || []);
                 setHabilidadesOriginales(usuarioRes.data.habilidades || []);
@@ -76,7 +76,7 @@ function EditarPerfil() {
                 bio
             });
 
-            setEstadoOriginal(estado);
+            //setEstadoOriginal(estado);
             setInteresesOriginales(interesesSeleccionados);
             setHabilidadesOriginales(habilidadesSeleccionadas);
             setBioOriginal(bio);
@@ -95,7 +95,7 @@ function EditarPerfil() {
             <>
                 <h2>Perfil</h2>
                 <Card className="p-3">
-                    <p><strong>Estado:</strong> <span className="badge bg-primary">{estadoOriginal}</span></p>
+                    <p><strong>Estado:</strong> <span className="badge bg-primary">{estado}</span></p>
                     <p><strong>Biografía:</strong> {bioOriginal || '(No hay biografía)'}</p>
                     <p><strong>Intereses:</strong> 
                         {interesesOriginales.length > 0
@@ -122,6 +122,7 @@ function EditarPerfil() {
             <>
                 <h2>Editar Perfil</h2>
                 <Form onSubmit={handleSubmit}>
+                    {/*
                     <Form.Group className="mb-3">
                         <Form.Label><h3>Estado</h3></Form.Label>
                         <Form.Select value={estado} onChange={(e) => setEstado(e.target.value)}>
@@ -129,7 +130,7 @@ function EditarPerfil() {
                             <option value="registrado">En un Proyecto</option>
                             <option value="inactivo">No Estoy Buscando Proyecto</option>
                         </Form.Select>
-                    </Form.Group>
+                    </Form.Group>*/}
 
                     <Form.Group className="mb-3">
                         <Form.Label><h3>Biografía</h3></Form.Label>
@@ -176,7 +177,7 @@ function EditarPerfil() {
                     <Button type="submit" className="me-2">Guardar Cambios</Button>
                     <Button variant="secondary" onClick={() => {
                         setEditando(false);
-                        setEstado(estadoOriginal);
+                        //setEstado(estadoOriginal);
                         setInteresesSeleccionados(interesesOriginales);
                         setHabilidadesSeleccionadas(habilidadesOriginales);
                         setBio(bioOriginal);
