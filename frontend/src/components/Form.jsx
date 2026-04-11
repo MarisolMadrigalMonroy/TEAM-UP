@@ -94,9 +94,6 @@ function Form({ route, method, setUsuario }) {
                 placeholder="Nombre de Usuario"
                 required
             />
-            <small className={nombreUsuario.length > 140 ? "text-warning" : "text-muted"}>
-                {nombreUsuario.length}/150
-            </small>
 
             <input
                 className="form-input"

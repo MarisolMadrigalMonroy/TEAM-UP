@@ -111,9 +111,6 @@ function CrearProyecto({ setUsuario }) {
                         isInvalid={!!errorMensaje && !nombre.trim()}
                         maxLength={100}
                     />
-                    <Form.Text className={nombre.length > 90 ? "text-warning" : "text-muted"}>
-                        {nombre.length}/100
-                    </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">

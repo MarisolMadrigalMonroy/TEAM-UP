@@ -18,6 +18,7 @@ function EditarProyecto({ usuario }) {
     const [habilidades, setHabilidades] = useState([]);
     const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
     const [error, setError] = useState(null);
+    const [errorMensaje, setErrorMensaje] = useState('');
     const navigate = useNavigate();
 
     const STATUS_OPTIONS = [
@@ -56,7 +57,7 @@ function EditarProyecto({ usuario }) {
                 setCategorias(catRes.data);
                 setHabilidades(habRes.data);
             } catch (err) {
-                setError('Error cargando proyecto u opciones.');
+                setErrorMensaje('Error cargando proyecto u opciones.');
                 console.error(err);
             }
         }
@@ -75,6 +76,17 @@ function EditarProyecto({ usuario }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMensaje('');
+
+        if (!descripcion.trim()) {
+            setErrorMensaje('La descripción del proyecto es obligatoria.');
+            return;
+        }
+
+        if (!nombre.trim()) {
+            setErrorMensaje('El nombre del proyecto es obligatorio.');
+            return;
+        }
         try {
             await api.put(`/api/proyectos/${id}/`, {
                 nombre: nombre,
@@ -85,7 +97,7 @@ function EditarProyecto({ usuario }) {
             });
             navigate(`/proyectos/${id}`);
         } catch (err) {
-            setError('Error al actualizar el proyecto.');
+            setErrorMensaje('Error al actualizar el proyecto.');
             console.error(err);
         }
     };
@@ -95,7 +107,15 @@ function EditarProyecto({ usuario }) {
     return (
         <Container className="py-5">
             <h2>Editar Proyecto</h2>
-            {error && <Alert variant="danger">{error}</Alert>}
+            {errorMensaje && (
+                <Alert
+                    variant="danger"
+                    dismissible
+                    onClose={() => setErrorMensaje('')}
+                >
+                    {errorMensaje}
+                </Alert>
+            )}
             <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                     <Form.Label>Nombre del Proyecto</Form.Label>
@@ -103,7 +123,8 @@ function EditarProyecto({ usuario }) {
                         type="text"
                         value={nombre}
                         onChange={e => setNombre(e.target.value)}
-                        required
+                        isInvalid={!!errorMensaje && !nombre.trim()}
+                        maxLength={100}
                     />
                 </Form.Group>
 
@@ -114,7 +135,7 @@ function EditarProyecto({ usuario }) {
                         rows={5}
                         value={descripcion}
                         onChange={e => setDescripcion(e.target.value)}
-                        required
+                        isInvalid={!!errorMensaje && !descripcion.trim()}
                     />
                 </Form.Group>
 
