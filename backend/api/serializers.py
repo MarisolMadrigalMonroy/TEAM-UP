@@ -116,6 +116,13 @@ class ProyectoSerializer(serializers.ModelSerializer):
                 "La descripción no puede estar vacía."
             )
         return value
+    
+    def validate_nombre(self, value):
+        if not value.strip():
+            raise serializers.ValidationError(
+                "El nombre no puede estar vacío."
+            )
+        return value
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())

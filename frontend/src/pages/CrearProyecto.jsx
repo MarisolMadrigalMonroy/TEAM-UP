@@ -59,6 +59,11 @@ function CrearProyecto({ setUsuario }) {
             return;
         }
 
+        if (!nombre.trim()) {
+            setErrorMensaje('El nombre del proyecto es obligatorio.');
+            return;
+        }
+
         try {
             const res = await api.post('/api/proyectos/', {
                 nombre: nombre,
@@ -103,7 +108,7 @@ function CrearProyecto({ setUsuario }) {
                         type="text"
                         value={nombre}
                         onChange={e => setNombre(e.target.value)}
-                        required
+                        isInvalid={!!errorMensaje && !nombre.trim()}
                     />
                 </Form.Group>
 
