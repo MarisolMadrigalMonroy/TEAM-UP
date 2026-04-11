@@ -88,11 +88,15 @@ function Form({ route, method, setUsuario }) {
             <input
                 className="form-input"
                 type="text"
+                maxLength={150}
                 value={nombreUsuario}
                 onChange={(e) => setNombreUsuario(e.target.value)}
                 placeholder="Nombre de Usuario"
                 required
             />
+            <small className={nombreUsuario.length > 140 ? "text-warning" : "text-muted"}>
+                {nombreUsuario.length}/150
+            </small>
 
             <input
                 className="form-input"

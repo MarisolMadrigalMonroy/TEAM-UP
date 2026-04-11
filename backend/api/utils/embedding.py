@@ -86,6 +86,7 @@ def obtener_estudiantes_similares_para_proyecto(proyecto, top_k=10):
 
     candidatos = User.objects.filter(
         tipo_usuario='estudiante',
+        estado='disponible',
         embedding__isnull=False
     ).exclude(id__in=usuarios_excluidos_ids)
 
@@ -116,6 +117,7 @@ def obtener_asesores_similares_para_proyecto(proyecto, top_k=10):
 
     candidatos = User.objects.filter(
         tipo_usuario='asesor',
+        estado='disponible',
         embedding__isnull=False
     ).exclude(id__in=usuarios_excluidos_ids)
 
