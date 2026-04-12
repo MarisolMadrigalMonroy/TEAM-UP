@@ -63,7 +63,7 @@ class UserSerializer(serializers.ModelSerializer):
         return attrs
     
     def validate_username(self, value):
-        value = value.strip().lower()
+        value = value.strip()
 
         pattern = r'^[a-z]{1,}[a-z0-9]{4,}$'
 
