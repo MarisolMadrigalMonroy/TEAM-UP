@@ -91,8 +91,8 @@ class ProyectoViewSet(viewsets.ModelViewSet):
 
         if busqueda:
             queryset = queryset.filter(
-                Q(nombre__icontains=busqueda) |
-                Q(descripcion__icontains=busqueda)
+                Q(nombre__unaccent__icontains=busqueda) |
+                Q(descripcion__unaccent__icontains=busqueda)
             )
 
         if categoria_ids:
