@@ -7,8 +7,10 @@ function MisProyectos({ usuario }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    if (!usuario?.id) return;
 
     const obtenerMisProyectos = async () => {
+      setCargando(true);
       try {
         const res = await api.get("/api/proyectos/");
 
