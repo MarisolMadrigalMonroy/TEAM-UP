@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Habilidad, Interes, Categoria, Comentario, Proyecto, User, InteresSobreProyecto, InteresSobreUsuario, Match, Notificacion
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 class InteresSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,6 +32,34 @@ class UserSerializer(serializers.ModelSerializer):
         usuario.habilidades.set(habilidades)
         return usuario
 
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        # Only validate password on create or when password is provided
+        if password:
+            temp_user = User(username=username)
+
+            try:
+                validate_password(password, user=temp_user)
+            except DjangoValidationError as e:
+                traducciones = {
+                    "This password is too common.": "Esta contraseña es demasiado común.",
+                    "This password is too short. It must contain at least 8 characters.": "Esta contraseña es demasiado corta. Debe contener al menos 8 caracteres.",
+                    "This password is entirely numeric.": "Esta contraseña no puede contener solo números.",
+                    "The password is too similar to the username.": "La contraseña es demasiado similar al nombre de usuario.",
+                }
+
+                mensajes = [
+                    traducciones.get(msg, msg)
+                    for msg in e.messages
+                ]
+
+                raise serializers.ValidationError({
+                    'password': mensajes
+                })
+
+        return attrs
 
 class ComentarioSerializer(serializers.ModelSerializer):
     autor_username = serializers.ReadOnlyField(source='autor.username')

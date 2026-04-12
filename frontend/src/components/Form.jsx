@@ -71,9 +71,12 @@ function Form({ route, method, setUsuario }) {
                     'Credenciales inválidas. Verifica tu usuario y contraseña.'
                 )
             } else if (error.response?.status === 400) {
+                const data = error.response?.data;
+                const firstError = Object.values(data || {}).flat()?.[0];
+
                 setErrorMensaje(
-                    'No se pudo completar el registro. Revisa los datos ingresados.'
-                )
+                    firstError || 'No se pudo completar la solicitud.'
+                );
             } else {
                 setErrorMensaje(
                     'Ocurrió un problema de conexión. Intenta nuevamente.'
