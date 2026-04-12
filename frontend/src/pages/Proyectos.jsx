@@ -86,55 +86,65 @@ function PaginaProyectos() {
 
       <Row>
         <Col md={3}>
-          <Form className="sticky-top" style={{ top: '80px' }} onSubmit={(e) => e.preventDefault()}>
-            <Form.Group className="mb-3">
-              <Form.Label>Buscar</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Buscar por nombre o descripción"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </Form.Group>
+          <div
+            className="sticky-top"
+            style={{
+              top: '80px',
+              maxHeight: 'calc(100vh - 100px)',
+              overflowY: 'auto',
+              paddingRight: '8px'
+            }}
+          >
+            <Form onSubmit={(e) => e.preventDefault()}>
+              <Form.Group className="mb-3">
+                <Form.Label>Buscar</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Buscar por nombre o descripción"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Estado</Form.Label>
-              <Form.Select
-                value={estadoSeleccionado}
-                onChange={(e) => setEstadoSeleccionado(e.target.value)}
-              >
-                {OPCIONES_ESTADO.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <Form.Group className="mb-3">
+                <Form.Label>Estado</Form.Label>
+                <Form.Select
+                  value={estadoSeleccionado}
+                  onChange={(e) => setEstadoSeleccionado(e.target.value)}
+                >
+                  {OPCIONES_ESTADO.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Categorias</Form.Label>
+                {listaCategorias.map(cat => (
+                  <Form.Check
+                    key={cat.id}
+                    type="checkbox"
+                    label={cat.nombre}
+                    checked={categoriasSeleccionadas.includes(cat.id)}
+                    onChange={() => handleCheckboxChange(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
+                  />
                 ))}
-              </Form.Select>
-            </Form.Group>
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Categorias</Form.Label>
-              {listaCategorias.map(cat => (
-                <Form.Check
-                  key={cat.id}
-                  type="checkbox"
-                  label={cat.nombre}
-                  checked={categoriasSeleccionadas.includes(cat.id)}
-                  onChange={() => handleCheckboxChange(cat.id, categoriasSeleccionadas, setCategoriasSeleccionadas)}
-                />
-              ))}
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Habilidades Requeridas</Form.Label>
-              {listaHabilidades.map(hab => (
-                <Form.Check
-                  key={hab.id}
-                  type="checkbox"
-                  label={hab.nombre}
-                  checked={habilidadesSeleccionadas.includes(hab.id)}
-                  onChange={() => handleCheckboxChange(hab.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
-                />
-              ))}
-            </Form.Group>
-          </Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Habilidades Requeridas</Form.Label>
+                {listaHabilidades.map(hab => (
+                  <Form.Check
+                    key={hab.id}
+                    type="checkbox"
+                    label={hab.nombre}
+                    checked={habilidadesSeleccionadas.includes(hab.id)}
+                    onChange={() => handleCheckboxChange(hab.id, habilidadesSeleccionadas, setHabilidadesSeleccionadas)}
+                  />
+                ))}
+              </Form.Group>
+            </Form>
+          </div>
         </Col>
 
         <Col md={9}>
