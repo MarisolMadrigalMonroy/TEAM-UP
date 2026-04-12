@@ -1,9 +1,15 @@
 // src/components/ProyectosSugeridos.jsx
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Button, Card, Spinner, Container } from 'react-bootstrap';
+import { Button, Card, Spinner, Container, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { FaHeart, FaHeartBroken } from 'react-icons/fa';
+import AvatarBubble from "../components/AvatarBubble";
+import {
+  FaLightbulb,
+  FaGraduationCap,
+  FaTools
+} from "react-icons/fa";
 
 /*
 * Componente que representa sugerencias de proyectos 
@@ -66,8 +72,30 @@ function ProyectosSugeridos({ usuario }) {
             lineHeight: '1.8'
           }}
           >
-            {proyecto.descripcion}
+            {proyecto.descripcion.slice(0,200)}...
           </Card.Text>
+
+          {/* Team strip */}
+          <div className="mt-3">
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <FaLightbulb size={24} className="me-1" title="Creador" />
+              {proyecto.creador?.username || 'N/A'}
+            </div>
+
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <FaGraduationCap size={24} className="me-1" title="Asesor" />
+              {proyecto.asesor?.username || 'Sin asignar'}
+            </div>
+
+            <div className="d-flex align-items-center gap-2">
+              <FaTools size={24} className="me-1" title="Equipo" />
+              {proyecto.estudiantes?.map(e => e.username).join(', ') || 'Vacante'}
+            </div>
+          </div>
+
+          <Alert variant="info">
+            Da me gusta o no me gusta para seguir explorando más proyectos recomendados.
+          </Alert>
 
           <div className="d-flex gap-2">
             <Button variant="outline-danger" onClick={() => handleAction('dislike')}>
