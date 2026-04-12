@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Habilidad, Interes, Categoria, Comentario, Proyecto, User, InteresSobreProyecto, InteresSobreUsuario, Match, Notificacion
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+import re
 
 class InteresSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,6 +61,18 @@ class UserSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+    
+    def validate_username(self, value):
+        value = value.strip().lower()
+
+        pattern = r'^[a-z]{1,}[a-z0-9]{4,}$'
+
+        if not re.match(pattern, value):
+            raise serializers.ValidationError(
+                "Usa solo minúsculas y números, comienza con una letra."
+            )
+
+        return value
 
 class ComentarioSerializer(serializers.ModelSerializer):
     autor_username = serializers.ReadOnlyField(source='autor.username')
