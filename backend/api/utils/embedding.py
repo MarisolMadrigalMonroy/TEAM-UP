@@ -152,9 +152,19 @@ def obtener_proyectos_similares_para_usuario(usuario, top_k=10):
         Proyecto.objects.filter(Q(creador=usuario) | Q(asesor=usuario)).values_list('id', flat=True)
     )
 
+    estados_no_disponibles = [
+        'equipo_completo',
+        'terminado',
+        'cancelado',
+    ]
+
     candidatos = Proyecto.objects.filter(
         embedding__isnull=False
-    ).exclude(id__in=proyectos_excluidos_ids)
+    ).exclude(
+        id__in=proyectos_excluidos_ids
+    ).exclude(
+        estado__in=estados_no_disponibles
+    )
 
     return candidatos.annotate(
         distance=L2Distance(F('embedding'), usuario.embedding)

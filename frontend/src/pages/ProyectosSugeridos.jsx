@@ -1,7 +1,7 @@
 // src/components/ProyectosSugeridos.jsx
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Button, Card, Spinner } from 'react-bootstrap';
+import { Button, Card, Spinner, Container } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { FaHeart, FaHeartBroken } from 'react-icons/fa';
 
@@ -53,30 +53,35 @@ function ProyectosSugeridos({ usuario }) {
   const proyecto = sugeridos[indiceActual];
 
   return (
-    <Card className="p-4 shadow-sm">
-      <Card.Body>
-        <Card.Title>{proyecto.nombre}</Card.Title>
-        <Card.Text
-          style={{
-          whiteSpace: 'pre-line',
-          lineHeight: '1.8'
-        }}
-        >
-          {proyecto.descripcion}
-        </Card.Text>
+     <Container className="py-4">
+      <h2 className="mb-4">
+        Sugerencias de Proyecto
+      </h2>
+      <Card className="p-4 shadow-sm">
+        <Card.Body>
+          <Card.Title>{proyecto.nombre}</Card.Title>
+          <Card.Text
+            style={{
+            whiteSpace: 'pre-line',
+            lineHeight: '1.8'
+          }}
+          >
+            {proyecto.descripcion}
+          </Card.Text>
 
-        <div className="d-flex gap-2">
-          <Button variant="outline-danger" onClick={() => handleAction('dislike')}>
-            <FaHeartBroken className="text-danger me-2" />
-              No me gusta
-          </Button>
-          <Button variant="outline-success" onClick={() => handleAction('like')}>
-            <FaHeart className="text-danger me-2" />
-              Me gusta
-          </Button>
-        </div>
-      </Card.Body>
-    </Card>
+          <div className="d-flex gap-2">
+            <Button variant="outline-danger" onClick={() => handleAction('dislike')}>
+              <FaHeartBroken className="text-danger me-2" />
+                No me gusta
+            </Button>
+            <Button variant="outline-success" onClick={() => handleAction('like')}>
+              <FaHeart className="text-danger me-2" />
+                Me gusta
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+    </Container>
   );
 }
 

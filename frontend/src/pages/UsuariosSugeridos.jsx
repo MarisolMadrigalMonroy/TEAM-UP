@@ -102,13 +102,18 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
   const canLikeOrDislike = useMemo(() => {
     if (!proyectoSeleccionadoObj || !usuarioActual) return false;
 
-    const creadorId = proyectoSeleccionadoObj.creador?.id;
+    const currentUserId = Number(usuarioActual.user_id);
+
+    const creadorId =
+      typeof proyectoSeleccionadoObj.creador === 'object'
+        ? proyectoSeleccionadoObj.creador?.id
+        : proyectoSeleccionadoObj.creador;
     const asesorId =
       typeof proyectoSeleccionadoObj.asesor === 'object'
         ? proyectoSeleccionadoObj.asesor?.id
         : proyectoSeleccionadoObj.asesor;
 
-    return creadorId === usuarioActual.usuario_id || asesorId === usuarioActual.usuario_id;
+    return creadorId === currentUserId || asesorId === currentUserId;
   }, [proyectoSeleccionadoObj, usuarioActual]);
 
   if (cargando) {
@@ -152,8 +157,14 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
         </Alert>
       )}
 
+      {proyectoSeleccionadoObj.estudiantes.length === 3 && tipoUsuario === 'estudiante' && (
+        <Alert variant="danger">
+          Este proyecto ya está completo. 
+        </Alert>
+      )}
+
       <Row xs={1} md={2} lg={3} className="g-4">
-        {usuariosSugeridos.map(usuario => (
+        {proyectoSeleccionadoObj.estudiantes.length < 3 && usuariosSugeridos.map(usuario => (
           <Col key={usuario.id}>
             <Card className="h-100">
               <Card.Body>

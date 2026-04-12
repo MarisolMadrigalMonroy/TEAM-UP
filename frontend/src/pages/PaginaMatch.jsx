@@ -19,7 +19,9 @@ function PaginaMatch({ usuario }) {
         const usuarioId = Number(usuario.id);
 
         const proyectosPoseidos = res.data.filter(proyecto => {
-          const creadorId = proyecto.creador?.id;
+          const creadorId = typeof proyecto.creador === 'object'
+            ? proyecto.creador?.id
+            : proyecto.creador;
           const asesorId = typeof proyecto.asesor === 'object'
             ? proyecto.asesor?.id
             : proyecto.asesor;
@@ -47,13 +49,22 @@ function PaginaMatch({ usuario }) {
 
   return (
     <div className="container py-4">
-      {poseeProyectos ? (
+      {poseeProyectos && (
         <>
           <UsuariosSugeridos tipoUsuario="estudiante" />
+
+          {usuario?.tipo_usuario !== 'asesor' && (
+            <>
+              <hr />
+              <UsuariosSugeridos tipoUsuario="asesor" />
+            </>
+          )}
+
           <hr />
-          <UsuariosSugeridos tipoUsuario="asesor" />
         </>
-      ) : (
+      )}
+
+      {(usuario?.tipo_usuario === 'asesor' || !poseeProyectos) && (
         <ProyectosSugeridos usuario={usuario} />
       )}
     </div>
