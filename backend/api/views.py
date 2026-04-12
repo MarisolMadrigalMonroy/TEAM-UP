@@ -122,6 +122,9 @@ class ProyectoViewSet(viewsets.ModelViewSet):
                 proyecto.asesor = usuario
             elif usuario.es_estudiante():
                 proyecto.estudiantes.add(usuario)
+            if usuario.estado != "registrado":
+                usuario.estado = "registrado"
+                usuario.save(update_fields=["estado"])
             proyecto.save()
     
     def update(self, request, *args, **kwargs):
@@ -242,6 +245,10 @@ class ProyectoViewSet(viewsets.ModelViewSet):
 
         proyecto.asesor = asesor
         proyecto.save()
+
+        if asesor.estado != "registrado":
+            asesor.estado = "registrado"
+            asesor.save(update_fields=["estado"])
 
         return Response(
             {'message': f'Asesor {asesor.username} asignado al proyecto {proyecto.nombre}.'},

@@ -115,11 +115,18 @@ def obtener_asesores_similares_para_proyecto(proyecto, top_k=10):
 
     usuarios_excluidos_ids.add(proyecto.creador_id)
 
+    estados_no_disponibles = [
+        'inactivo',
+    ]
+
     candidatos = User.objects.filter(
         tipo_usuario='asesor',
-        estado='disponible',
         embedding__isnull=False
-    ).exclude(id__in=usuarios_excluidos_ids)
+    ).exclude(
+        id__in=usuarios_excluidos_ids
+    ).exclude(
+        estado__in=estados_no_disponibles
+    )
 
     return candidatos.annotate(
         distance=L2Distance(F('embedding'), proyecto.embedding)
