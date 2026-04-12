@@ -4,7 +4,6 @@ import api from '../api';
 import { Button, Card, Spinner, Container, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { FaHeart, FaHeartBroken } from 'react-icons/fa';
-import AvatarBubble from "../components/AvatarBubble";
 import {
   FaLightbulb,
   FaGraduationCap,
@@ -54,7 +53,17 @@ function ProyectosSugeridos({ usuario }) {
   };
 
   if (cargando) return <div className="text-center"><Spinner animation="border" /></div>;
-  if (indiceActual >= sugeridos.length) return <p>No hay más sugerencias por el momento.</p>;
+  if (indiceActual >= sugeridos.length)
+    {
+      return (
+        <Container className="py-4">
+          <h2 className="mb-4">
+            Sugerencias de Proyecto
+          </h2>
+          <p>No hay más sugerencias por el momento.</p>
+        </Container>
+      )
+    }
 
   const proyecto = sugeridos[indiceActual];
 

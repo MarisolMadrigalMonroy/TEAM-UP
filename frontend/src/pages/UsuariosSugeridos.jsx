@@ -1,5 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Card, Button, Spinner, Container, Row, Col, Form, Alert } from 'react-bootstrap';
+import {
+  Card,
+  Button,
+  Spinner,
+  Container,
+  Form,
+  Alert,
+  Row,
+  Col
+} from 'react-bootstrap';
 import api from '../api';
 import { obtenerUsuarioActual } from '../auth';
 import { toast } from 'react-toastify';
@@ -13,16 +22,32 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
   const [cargando, setCargando] = useState(true);
   const [proyectosActivos, setProyectosActivos] = useState([]);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
+  const [indiceActual, setIndiceActual] = useState(0);
+
   const usuarioActual = obtenerUsuarioActual();
 
+  const esDeck = tipoUsuario === 'estudiante';
+
   useEffect(() => {
-    // Función para obtener los proyectos del usuario
     const obtenerProyectosDeUsuario = async () => {
       try {
         const res = await api.get('/api/proyectos/');
-        const poseidos = res.data.filter(p => {
-          const asesorId = typeof p.asesor === 'object' ? p.asesor?.id : p.asesor;
-          return p.creador?.id === usuarioActual?.user_id || asesorId === usuarioActual?.user_id;
+
+        const estadosNoReclutables = [
+          'equipo_completo',
+          'terminado',
+          'cancelado'
+        ];
+
+        const poseidos = res.data.filter((p) => {
+          const asesorId =
+            typeof p.asesor === 'object' ? p.asesor?.id : p.asesor;
+
+          const esMio =
+            p.creador?.id === usuarioActual?.user_id ||
+            asesorId === usuarioActual?.user_id;
+
+          return esMio && !estadosNoReclutables.includes(p.estado);
         });
 
         setProyectosActivos(poseidos);
@@ -31,7 +56,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
           setProyectoSeleccionado(poseidos[0].id);
         }
       } catch (err) {
-        console.error('Error obteniendo los proyectos:', err);
+        console.error('Error obteniendo proyectos:', err);
       }
     };
 
@@ -42,11 +67,18 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
     const obtenerSugerencias = async () => {
       if (!proyectoSeleccionado) return;
 
+      setUsuariosSugeridos([]);
+      setIndiceActual(0);
       setCargando(true);
+
       try {
         const res = await api.get('/api/match/ai-usuarios-sugeridos/', {
-          params: { proyecto_id: proyectoSeleccionado, tipo_usuario: tipoUsuario }
+          params: {
+            proyecto_id: proyectoSeleccionado,
+            tipo_usuario: tipoUsuario
+          }
         });
+
         setUsuariosSugeridos(res.data);
       } catch (err) {
         console.error('Error obteniendo usuarios sugeridos:', err);
@@ -58,45 +90,8 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
     obtenerSugerencias();
   }, [proyectoSeleccionado, tipoUsuario]);
 
-  const handleLike = async (usuarioId) => {
-    if (!proyectoSeleccionado) {
-      alert('Por favor selecciona un proyecto.');
-      return;
-    }
-    try {
-      const res = await api.post('/api/match/like-usuario/', {
-        usuario: usuarioId,
-        proyecto: proyectoSeleccionado,
-        gustado: true
-      });
-      if (res.data.emparejado && res.data.emparejado_con) {
-        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
-      }
-      setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
-    } catch (err) {
-      console.error('Error dando me gusta al usuario:', err);
-    }
-  };
-
-  const handleDislike = async (usuarioId) => {
-    if (!proyectoSeleccionado) {
-      alert('Por favor selecciona un proyecto.');
-      return;
-    }
-    try {
-      await api.post('/api/match/dislike-usuario/', {
-        usuario: usuarioId,
-        proyecto: proyectoSeleccionado,
-        gustado: false
-      });
-      setUsuariosSugeridos(prev => prev.filter(u => u.id !== usuarioId));
-    } catch (err) {
-      console.error('Error dando no me gusta al usuario:', err);
-    }
-  };
-
   const proyectoSeleccionadoObj = useMemo(() => {
-    return proyectosActivos.find(p => p.id === proyectoSeleccionado);
+    return proyectosActivos.find((p) => p.id === proyectoSeleccionado);
   }, [proyectoSeleccionado, proyectosActivos]);
 
   const canLikeOrDislike = useMemo(() => {
@@ -108,6 +103,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
       typeof proyectoSeleccionadoObj.creador === 'object'
         ? proyectoSeleccionadoObj.creador?.id
         : proyectoSeleccionadoObj.creador;
+
     const asesorId =
       typeof proyectoSeleccionadoObj.asesor === 'object'
         ? proyectoSeleccionadoObj.asesor?.id
@@ -115,6 +111,59 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
 
     return creadorId === currentUserId || asesorId === currentUserId;
   }, [proyectoSeleccionadoObj, usuarioActual]);
+
+  const handleDeckAction = async (accion) => {
+    const usuario = usuariosSugeridos[indiceActual];
+    if (!usuario || !proyectoSeleccionado) return;
+
+    try {
+      const endpoint =
+        accion === 'like'
+          ? '/api/match/like-usuario/'
+          : '/api/match/dislike-usuario/';
+
+      const res = await api.post(endpoint, {
+        usuario: usuario.id,
+        proyecto: proyectoSeleccionado,
+        gustado: accion === 'like'
+      });
+
+      if (accion === 'like' && res.data.emparejado && res.data.emparejado_con) {
+        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
+      }
+
+      setIndiceActual((prev) => prev + 1);
+    } catch (err) {
+      console.error(`Error dando ${accion}:`, err);
+    }
+  };
+
+  const handleGridAction = async (usuarioId, accion) => {
+    if (!proyectoSeleccionado) return;
+
+    try {
+      const endpoint =
+        accion === 'like'
+          ? '/api/match/like-usuario/'
+          : '/api/match/dislike-usuario/';
+
+      const res = await api.post(endpoint, {
+        usuario: usuarioId,
+        proyecto: proyectoSeleccionado,
+        gustado: accion === 'like'
+      });
+
+      if (accion === 'like' && res.data.emparejado && res.data.emparejado_con) {
+        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
+      }
+
+      setUsuariosSugeridos((prev) =>
+        prev.filter((u) => u.id !== usuarioId)
+      );
+    } catch (err) {
+      console.error(`Error dando ${accion}:`, err);
+    }
+  };
 
   if (cargando) {
     return (
@@ -124,6 +173,22 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
     );
   }
 
+  if (!proyectoSeleccionado) {
+    return (
+      <Container className="py-4">
+        <Alert variant="warning">
+          Por favor selecciona un proyecto para ver sugerencias.
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!proyectoSeleccionadoObj) return null;
+
+  const proyectoLleno =
+    tipoUsuario === 'estudiante' &&
+    proyectoSeleccionadoObj.estudiantes?.length >= 3;
+
   return (
     <Container className="py-4">
       <h2 className="mb-4">
@@ -131,64 +196,115 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
       </h2>
 
       {proyectosActivos.length > 0 && (
-        <Form.Group className="mb-3" controlId="projectSelect">
+        <Form.Group className="mb-3">
           <Form.Label>Selecciona un Proyecto</Form.Label>
           <Form.Select
             value={proyectoSeleccionado || ''}
-            onChange={(e) => setProyectoSeleccionado(parseInt(e.target.value))}
+            onChange={(e) =>
+              setProyectoSeleccionado(parseInt(e.target.value))
+            }
           >
-            <option value=''>-- Selecciona un Proyecto --</option>
-            {proyectosActivos.map(proj => (
-              <option key={proj.id} value={proj.id}>{proj.nombre}</option>
+            {proyectosActivos.map((proj) => (
+              <option key={proj.id} value={proj.id}>
+                {proj.nombre}
+              </option>
             ))}
           </Form.Select>
         </Form.Group>
       )}
 
-      {!proyectoSeleccionado && (
-        <Alert variant="warning">
-          Por favor selecciona un proyecto para ver sugerencias de {tipoUsuario === 'asesor' ? 'asesores' : 'estudiantes'}.
+      {proyectoLleno ? (
+        <Alert variant="secondary">
+          Este proyecto ya tiene el equipo completo.
         </Alert>
-      )}
-
-      {proyectoSeleccionado && usuariosSugeridos.length === 0 && (
+      ) : usuariosSugeridos.length === 0 ? (
         <Alert variant="info">
-          No hay sugerencias de {tipoUsuario === 'asesor' ? 'asesores' : 'estudiantes'}.
+          No hay sugerencias de{' '}
+          {tipoUsuario === 'asesor' ? 'asesores' : 'estudiantes'}.
         </Alert>
-      )}
+      ) : esDeck ? (
+        indiceActual >= usuariosSugeridos.length ? (
+          <Alert variant="info">
+            No hay más sugerencias de estudiantes.
+          </Alert>
+        ) : (
+          <Card className="p-4 shadow-sm">
+            <Card.Body>
+              <Card.Title>
+                {usuariosSugeridos[indiceActual].username}
+              </Card.Title>
 
-      {proyectoSeleccionadoObj.estudiantes.length === 3 && tipoUsuario === 'estudiante' && (
-        <Alert variant="danger">
-          Este proyecto ya está completo. 
-        </Alert>
-      )}
+              <Card.Text>
+                Bio: {usuariosSugeridos[indiceActual].bio || 'Sin biografía'}
+              </Card.Text>
 
-      <Row xs={1} md={2} lg={3} className="g-4">
-        {proyectoSeleccionadoObj.estudiantes.length < 3 && usuariosSugeridos.map(usuario => (
-          <Col key={usuario.id}>
-            <Card className="h-100">
-              <Card.Body>
-                <Card.Title>{usuario.username}</Card.Title>
-                <Card.Text>Bio: {usuario.bio}</Card.Text>
+              <Alert variant="info">
+                Da me gusta o no me gusta para seguir explorando más sugerencias.
+              </Alert>
 
-                {canLikeOrDislike && (
-                  <div className="d-flex justify-content-between">
-                    <Button variant="outline-danger" onClick={() => handleDislike(usuario.id)}>
-                      <FaHeartBroken className="text-danger me-2" />
+              {canLikeOrDislike && (
+                <div className="d-flex gap-2">
+                  <Button
+                    variant="outline-danger"
+                    onClick={() => handleDeckAction('dislike')}
+                  >
+                    <FaHeartBroken className="text-danger me-2" />
+                    No me gusta
+                  </Button>
+
+                  <Button
+                    variant="outline-success"
+                    onClick={() => handleDeckAction('like')}
+                  >
+                    <FaHeart className="text-danger me-2" />
+                    Me gusta
+                  </Button>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        )
+      ) : (
+        <Row className="g-4">
+          {usuariosSugeridos.map((usuario) => (
+            <Col key={usuario.id} md={6} lg={4}>
+              <Card className="h-100 shadow-sm">
+                <Card.Body>
+                  <Card.Title>{usuario.username}</Card.Title>
+
+                  <Card.Text>
+                    Bio: {usuario.bio || 'Sin biografía'}
+                  </Card.Text>
+
+                  {canLikeOrDislike && (
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="outline-danger"
+                        onClick={() =>
+                          handleGridAction(usuario.id, 'dislike')
+                        }
+                      >
+                        <FaHeartBroken className="text-danger me-2" />
                         No me gusta
-                    </Button>
-                    <Button variant="outline-success" onClick={() => handleLike(usuario.id)}>
-                      <FaHeart className="text-danger me-2" />
+                      </Button>
+
+                      <Button
+                        variant="outline-success"
+                        onClick={() =>
+                          handleGridAction(usuario.id, 'like')
+                        }
+                      >
+                        <FaHeart className="text-danger me-2" />
                         Me gusta
-                    </Button>
-                    
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                      </Button>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </Container>
   );
 }
