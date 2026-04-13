@@ -52,7 +52,7 @@ function ListaComentarios({ comentarios }) {
 /*
 * Componente para detalles del proyecto
 */
-function DetalleProyecto() {
+function DetalleProyecto({ refrescarNotificaciones }) {
     const usuario = obtenerUsuarioActual();
     const sesionIniciada = !!usuario;
     const { id } = useParams(); // id del proyecto desde la url
@@ -132,6 +132,7 @@ function DetalleProyecto() {
             setLiked(true);
             // Si hay un emparejamiento entre usuario y proyecto, mostrar notificación
             if (res.data.emparejado && res.data.emparejado_con) {
+                await refrescarNotificaciones();
                 toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyecto.nombre}"!`);
             } else {
                 toast.info(`Te gusta "${proyecto.nombre}"`);

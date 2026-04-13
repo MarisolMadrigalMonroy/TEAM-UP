@@ -13,7 +13,7 @@ import {
 /*
 * Componente que representa sugerencias de proyectos 
 */
-function ProyectosSugeridos({ usuario }) {
+function ProyectosSugeridos({ usuario, refrescarNotificaciones }) {
   const [sugeridos, setSugeridos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [indiceActual, setIndiceActual] = useState(0);
@@ -44,6 +44,7 @@ function ProyectosSugeridos({ usuario }) {
             gustado: gustado,
             });
         if (res.data.emparejado && res.data.emparejado_con) {
+          await refrescarNotificaciones();
           toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyecto.nombre}"!`);
         }
         setIndiceActual((prev) => prev + 1);

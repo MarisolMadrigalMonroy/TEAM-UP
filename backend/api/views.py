@@ -481,6 +481,7 @@ class MatchViewSet(viewsets.ViewSet):
         if gustado:
             # Obtenemos el asesor o creador a quien se le dará la notificación
             receptor = proyecto.asesor or proyecto.creador
+            print(f'notificacion de like a proyecto para {receptor}')
 
             if receptor and receptor != usuario:
                 Notificacion.objects.create(
@@ -593,6 +594,7 @@ class MatchViewSet(viewsets.ViewSet):
 
         # Si desde el proyecto se le dió me gusta al usuario
         if gustado:
+            print(f'notificacion de like a usuario para {usuario_por_gustar}')
             Notificacion.objects.create(
                 receptor=usuario_por_gustar,
                 mensaje=(

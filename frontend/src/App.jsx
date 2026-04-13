@@ -122,7 +122,7 @@ function App() {
         <Route 
           path="/proyectos/:id" 
           element={
-            <DetalleProyecto />
+            <DetalleProyecto refrescarNotificaciones={obtenerNotificaciones} />
           } 
         />
         {/* Editar perfil */}
@@ -164,7 +164,10 @@ function App() {
           path="/match" 
           element={
             <ProtectedRoute>
-              <PaginaMatch usuario={usuario} />
+              <PaginaMatch
+                usuario={usuario}
+                refrescarNotificaciones={obtenerNotificaciones}
+              />
             </ProtectedRoute>
           } 
         />
@@ -212,7 +215,10 @@ function App() {
           path="/usuarios/:id"
           element={
             <ProtectedRoute>
-              <PerfilPublico usuario={usuario} />
+              <PerfilPublico
+                usuario={usuario}
+                refrescarNotificaciones={obtenerNotificaciones}
+              />
             </ProtectedRoute>
           }
         />

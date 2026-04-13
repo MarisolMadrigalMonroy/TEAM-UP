@@ -10,13 +10,14 @@ import {
   Spinner
 } from 'react-bootstrap';
 import api from '../api';
+import { toast } from 'react-toastify';
 
 /*
 * Página pública para visualizar el perfil de un usuario
 * Permite evaluar habilidades, intereses y proyectos,
 * además de mostrar interés desde uno de mis proyectos.
 */
-function PerfilPublico({ usuario }) {
+function PerfilPublico({ usuario, refrescarNotificaciones }) {
   const { id } = useParams();
 
   const [perfil, setPerfil] = useState(null);
@@ -57,14 +58,8 @@ function PerfilPublico({ usuario }) {
         setMisProyectos(propios);
 
         if (propios.length > 0) {
-          const proyectoId = propios[0].id;
-          setProyectoSeleccionado(proyectoId);
+          setProyectoSeleccionado(propios[0].id);
 
-          const interesRes = await api.get(
-            `/api/match/interes-usuario/?usuario=${id}&proyecto=${proyectoId}`
-          );
-
-          setYaMostroInteres(interesRes.data.gustado);
         }
       } catch (err) {
         console.error('Error cargando perfil público:', err);
@@ -75,6 +70,25 @@ function PerfilPublico({ usuario }) {
 
     cargarDatos();
   }, [id, usuario]);
+
+  useEffect(() => {
+    const verificarInteres = async () => {
+      if (!proyectoSeleccionado || !id) return;
+
+      try {
+        const res = await api.get(
+          `/api/match/interes-usuario/?usuario=${id}&proyecto=${proyectoSeleccionado}`
+        );
+
+        setYaMostroInteres(res.data.gustado);
+      } catch (err) {
+        console.error('Error verificando interés:', err);
+        setYaMostroInteres(false);
+      }
+    };
+
+    verificarInteres();
+  }, [proyectoSeleccionado, id]);
 
   const traducirEstado = (estado) => {
     if (estado === 'disponible') return 'Buscando Proyecto';
@@ -94,15 +108,19 @@ function PerfilPublico({ usuario }) {
     try {
       setEnviandoInteres(true);
 
-      await api.post('/api/match/like-usuario/', {
+      const res = await api.post('/api/match/like-usuario/', {
         usuario: perfil.id,
         proyecto: proyectoSeleccionado,
         gustado: true
       });
 
+      if (res.data.emparejado && res.data.emparejado_con) {
+        await refrescarNotificaciones();
+        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyectoSeleccionado.nombre}"!`);
+      }
+
       setYaMostroInteres(true);
 
-      alert(`Mostraste interés en ${perfil.username}`);
     } catch (err) {
       console.error('Error mostrando interés:', err);
       alert('No fue posible mostrar interés.');

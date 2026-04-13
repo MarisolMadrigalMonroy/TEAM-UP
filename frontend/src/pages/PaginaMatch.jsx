@@ -6,7 +6,7 @@ import api from '../api';
 /*
 * Componente que representa la página para mostrar sugerencias de match 
 */
-function PaginaMatch({ usuario }) {
+function PaginaMatch({ usuario, refrescarNotificaciones }) {
   const [poseeProyectos, setPoseeProyectos] = useState(false);
   const [cargando, setCargando] = useState(true);
 
@@ -51,12 +51,12 @@ function PaginaMatch({ usuario }) {
     <div className="container py-4">
       {poseeProyectos && (
         <>
-          <UsuariosSugeridos tipoUsuario="estudiante" />
+          <UsuariosSugeridos tipoUsuario="estudiante" refrescarNotificaciones={refrescarNotificaciones} />
 
           {usuario?.tipo_usuario !== 'asesor' && (
             <>
               <hr />
-              <UsuariosSugeridos tipoUsuario="asesor" />
+              <UsuariosSugeridos tipoUsuario="asesor" refrescarNotificaciones={refrescarNotificaciones} />
             </>
           )}
 
@@ -65,7 +65,7 @@ function PaginaMatch({ usuario }) {
       )}
 
       {(usuario?.tipo_usuario === 'asesor' || !poseeProyectos) && (
-        <ProyectosSugeridos usuario={usuario} />
+        <ProyectosSugeridos usuario={usuario} refrescarNotificaciones={refrescarNotificaciones} />
       )}
     </div>
   );

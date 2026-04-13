@@ -17,7 +17,7 @@ import { FaHeart, FaHeartBroken } from 'react-icons/fa';
 /*
 * Componente que representa sugerencias de usuarios
 */
-function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
+function UsuariosSugeridos({ tipoUsuario = 'estudiante', refrescarNotificaciones }) {
   const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [proyectosActivos, setProyectosActivos] = useState([]);
@@ -129,6 +129,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
       });
 
       if (accion === 'like' && res.data.emparejado && res.data.emparejado_con) {
+        await refrescarNotificaciones();
         toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
       }
 
@@ -154,6 +155,7 @@ function UsuariosSugeridos({ tipoUsuario = 'estudiante' }) {
       });
 
       if (accion === 'like' && res.data.emparejado && res.data.emparejado_con) {
+        await refrescarNotificaciones();
         toast.success(`🎉 Hiciste match con ${res.data.emparejado_con}!`);
       }
 
