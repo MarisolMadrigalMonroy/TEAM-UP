@@ -18,6 +18,7 @@ from pgvector.django import VectorField
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from pgvector.django import L2Distance
+from api.utils.ciclo_de_vida_proyecto import cancelar_proyecto
 
 class EsCreadorDeProyectoOAsesor(permissions.BasePermission):
     '''
@@ -130,10 +131,16 @@ class ProyectoViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         proyecto = self.get_object()
 
-        if request.user.id != proyecto.creador_id and request.user.id != (proyecto.asesor_id or None):
+        if request.user.id != proyecto.creador_id:
             return Response(
                 {'detail': 'No cuentas con el permiso para actualizar este proyecto.'},
                 status=status.HTTP_403_FORBIDDEN
+            )
+
+        if proyecto.estado in ["cancelado", "completado"]:
+            return Response(
+                {'detail': f'No se puede editar un proyecto {proyecto.estado}.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         return super().update(request, *args, **kwargs)
@@ -172,8 +179,22 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if usuario.estado != "registrado":
             usuario.estado = "registrado"
             usuario.save(update_fields=["estado"])
+        
+        Notificacion.objects.create(
+            receptor=usuario,
+            mensaje=(
+                f"¡Fuiste agregado al proyecto '{proyecto.nombre}'!"
+            ),
+            proyecto_relacionado=proyecto
+        )
 
-        return Response({'message': f'Usuario {usuario.username} asignado al proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
+        return Response({
+            'message': f'Usuario {usuario.username} asignado al proyecto {proyecto.nombre}.',
+            'usuario': {
+                'id': usuario.id,
+                'username': usuario.username
+            }
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='remover-usuario')
     def remover_usuario(self, request, pk=None):
@@ -190,32 +211,47 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if not usuario_id:
             return Response({'error': 'se requiere usuario_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.user.id != proyecto.creador_id and request.user.id != (proyecto.asesor_id or None):
-            return Response({'error': 'Sólo el creador del proyecto o el asesor pueden remover estudiantes.'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.id != proyecto.creador_id:
+            return Response({'error': 'Sólo el creador del proyecto puede remover estudiantes.'},status=status.HTTP_403_FORBIDDEN)
 
         try:
             usuario = User.objects.get(id=usuario_id, tipo_usuario=User.ESTUDIANTE)
         except User.DoesNotExist:
             return Response({'error': 'No se encontró el estudiante.'}, status=status.HTTP_404_NOT_FOUND)
         
-        if usuario.id == proyecto.creador_id:
-            return Response({'error': 'No se puede remover al creador del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
-        if proyecto.asesor_id and usuario.id == proyecto.asesor_id:
-            return Response({'error': 'No se puede remover al asesor del proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
-
         if not proyecto.estudiantes.filter(id=usuario.id).exists():
             return Response({'error': 'El usuario no está asignado a este proyecto.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if usuario.id == proyecto.creador_id:
+            cancelar_proyecto(proyecto)
+            return Response({
+                'message': f'El proyecto {proyecto.nombre} fue cancelado.',
+                'cancelado': True
+            }, status=status.HTTP_200_OK)
 
         proyecto.estudiantes.remove(usuario)
         if proyecto.estudiantes.count() < 3 and proyecto.estado == 'equipo_completo':
             proyecto.estado = 'buscando_estudiantes'
-            proyecto.save()
+            proyecto.save(update_fields=["estado"])
         
-        if not usuario.proyectos_como_estudiante.exists():
-            usuario.estado = "disponible"
-            usuario.save(update_fields=["estado"])
+        usuario.estado = "disponible"
+        usuario.save(update_fields=["estado"])
 
-        return Response({'message': f'Usuario {usuario.username} removido del proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
+        Notificacion.objects.create(
+            receptor=usuario,
+            mensaje=(
+                f"Fuiste removido del proyecto '{proyecto.nombre}' "
+            ),
+            proyecto_relacionado=proyecto
+        )
+
+        return Response({
+            'message': f'Usuario {usuario.username} removido del proyecto {proyecto.nombre}.',
+            'usuario': {
+                'id': usuario.id,
+                'username': usuario.username
+            }
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='asignar-asesor')
     def asignar_asesor(self, request, pk=None):
@@ -250,10 +286,21 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             asesor.estado = "registrado"
             asesor.save(update_fields=["estado"])
 
-        return Response(
-            {'message': f'Asesor {asesor.username} asignado al proyecto {proyecto.nombre}.'},
-            status=status.HTTP_200_OK
+        Notificacion.objects.create(
+            receptor=asesor,
+            mensaje=(
+                f"¡Fuiste agregado al proyecto '{proyecto.nombre}'!"
+            ),
+            proyecto_relacionado=proyecto
         )
+
+        return Response({
+            'message': f'Asesor {asesor.username} asignado al proyecto {proyecto.nombre}.',
+            'usuario': {
+                'id': asesor.id,
+                'username': asesor.username
+            }
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='remover-asesor')
     def remover_asesor(self, request, pk=None):
@@ -270,10 +317,35 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Este proyecto no tiene un asesor.'}, status=status.HTTP_400_BAD_REQUEST)
 
         asesor_removido = proyecto.asesor
-        proyecto.asesor = None
-        proyecto.save()
+        if proyecto.creador_id == proyecto.asesor_id:
+            cancelar_proyecto(proyecto)
+            return Response({
+                'message': f'El proyecto {proyecto.nombre} fue cancelado.',
+                'cancelado': True
+            }, status=status.HTTP_200_OK)
 
-        return Response({'message': f'Asesor {asesor_removido.username} removido del proyecto {proyecto.nombre}.'}, status=status.HTTP_200_OK)
+        proyecto.asesor = None
+        proyecto.save(update_fields=['asesor'])
+
+        if not asesor_removido.proyectos_asesorados.exists():
+            asesor_removido.estado = 'disponible'
+            asesor_removido.save(update_fields=['estado'])
+
+        Notificacion.objects.create(
+            receptor=asesor_removido,
+            mensaje=(
+                f"Fuiste removido del proyecto '{proyecto.nombre}' "
+            ),
+            proyecto_relacionado=proyecto
+        )
+
+        return Response({
+            'message': f'Usuario {asesor_removido.username} removido del proyecto {proyecto.nombre}.',
+            'usuario': {
+                'id': asesor_removido.id,
+                'username': asesor_removido.username
+            }
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'], url_path='usuarios-emparejados')
     def usuarios_emparejados(self, request, pk=None):

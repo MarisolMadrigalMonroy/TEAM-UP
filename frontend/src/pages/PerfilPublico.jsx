@@ -114,9 +114,13 @@ function PerfilPublico({ usuario, refrescarNotificaciones }) {
         gustado: true
       });
 
+      const proyectoObj = misProyectos.find(
+        (p) => Number(p.id) === Number(proyectoSeleccionado)
+      );
+
       if (res.data.emparejado && res.data.emparejado_con) {
         await refrescarNotificaciones();
-        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyectoSeleccionado.nombre}"!`);
+        toast.success(`🎉 Hiciste match con ${res.data.emparejado_con} en "${proyectoObj?.nombre}"!`);
       }
 
       setYaMostroInteres(true);

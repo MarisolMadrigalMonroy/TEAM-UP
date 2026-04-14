@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../api';
+import { toast } from 'react-toastify';
 
 /*
 * Componente que representa la página de estudiantes con match 
 */
-export default function UsuariosEmparejados() {
+export default function UsuariosEmparejados({ refrescarNotificaciones }) {
   const { id } = useParams();
   const [estudiantesConMatch, setEstudiantesConMatch] = useState([]);
   const [proyecto, setProyecto] = useState(null);
@@ -38,9 +39,10 @@ export default function UsuariosEmparejados() {
 
   const handleAccept = async (usuarioId) => {
     try {
-      await api.post(`/api/proyectos/${id}/asignar-usuario/`, { usuario_id: usuarioId });
+      const res = await api.post(`/api/proyectos/${id}/asignar-usuario/`, { usuario_id: usuarioId });
       await obtenerDatos();
-      alert("¡Usuario agregado!");
+      await refrescarNotificaciones();
+      toast.success(`🎉 Agregaste a ${res.data.usuario.username} en "${proyecto.nombre}"!`);
     } catch (err) {
       console.error("Error asignando usuario", err);
       alert("Error asignando usuario");

@@ -189,7 +189,9 @@ function App() {
           path="/proyectos/:id/usuarios-emparejados"
           element={
             <ProtectedRoute>
-              <UsuariosEmparejados />
+              <UsuariosEmparejados
+                refrescarNotificaciones={obtenerNotificaciones}
+              />
             </ProtectedRoute>
           }
         />
@@ -198,7 +200,9 @@ function App() {
           path="/proyectos/:id/asesores-emparejados"
           element={
             <ProtectedRoute>
-              <AsesoresEmparejados />
+              <AsesoresEmparejados
+                refrescarNotificaciones={obtenerNotificaciones}
+              />
             </ProtectedRoute>
           } 
         />

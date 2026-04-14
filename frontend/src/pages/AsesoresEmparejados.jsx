@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
+import { toast } from 'react-toastify';
 
 /*
 * Componente que representa la página de asesores con match 
 */
-export default function AsesoresEmparejados() {
+export default function AsesoresEmparejados({ refrescarNotificaciones }) {
   const { id } = useParams();
   const [asesoresConMatch, setAsesoresConMatch] = useState([]);
   const [proyecto, setProyecto] = useState(null);
@@ -33,9 +34,10 @@ export default function AsesoresEmparejados() {
 
   const handleAccept = async (asesorId) => {
     try {
-      await api.post(`/api/proyectos/${id}/asignar-asesor/`, { asesor_id: asesorId });
+      const res = await api.post(`/api/proyectos/${id}/asignar-asesor/`, { asesor_id: asesorId });
       await obtenerDatos();
-      alert("Asesor asignado exitosamente!");
+      await refrescarNotificaciones();
+      toast.success(`🎉 Agregaste a ${res.data.usuario.username} en "${proyecto.nombre}"!`);
     } catch (err) {
       console.error("Error asignando asesor", err);
       alert("Error asignando el asesor");
