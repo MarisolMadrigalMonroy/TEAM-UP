@@ -9,6 +9,7 @@ import api from '../api';
     import { obtenerUsuarioActual } from '../auth';
 import { obtenerPerfilUsuario } from '../auth';
 import { toast } from 'react-toastify';
+import AvatarBubble from "../components/AvatarBubble";
 
 /*
 * Componente para lista de comentarios
@@ -28,11 +29,14 @@ function ListaComentarios({ comentarios }) {
                             <Card.Body>
                                 <Row>
                                     <Col xs={1} className="text-center">
-                                        <FaUserCircle size={40} className="text-secondary" />
+                                        <AvatarBubble
+                                            usuario={comentario.autor}
+                                            rol="vacante"
+                                        />
                                     </Col>
                                     <Col>
                                         <div className="d-flex justify-content-between">
-                                            <strong>{comentario.autor_username}</strong>
+                                            <strong>{comentario.autor.username}</strong>
                                             <small className="text-muted">
                                                 {new Date(comentario.creado_en).toLocaleString()}
                                             </small>

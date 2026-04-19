@@ -39,7 +39,7 @@ function AvatarBubble({ usuario, rol, placeholder = false, tooltip }) {
 
   return (
     <Link
-      to={`/perfil-publico/${usuario.id}`}
+      to={`/usuarios/${usuario.id}`}
       className="text-decoration-none"
     >
       {bubble}

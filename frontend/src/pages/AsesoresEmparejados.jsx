@@ -66,6 +66,8 @@ export default function AsesoresEmparejados({ refrescarNotificaciones }) {
                 ) : (
                   <span className="badge bg-secondary">El proyecto ya cuenta con asesor</span>
                 )
+              ) : asesor.estado === "inactivo"  ? (
+                  <span className="badge bg-secondary">El asesor está inactivo</span>
               ) : (
                 <button  className="btn btn-outline-success mt-2 w-10" onClick={() => handleAccept(asesor.id)}>Aceptar</button>
               )}

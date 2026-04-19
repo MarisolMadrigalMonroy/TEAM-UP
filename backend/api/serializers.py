@@ -74,12 +74,17 @@ class UserSerializer(serializers.ModelSerializer):
 
         return value
 
+class AutorMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
 class ComentarioSerializer(serializers.ModelSerializer):
-    autor_username = serializers.ReadOnlyField(source='autor.username')
+    autor = AutorMiniSerializer(read_only=True)
 
     class Meta:
         model = Comentario
-        fields = ['id', 'proyecto', 'autor', 'autor_username', 'contenido', 'creado_en', 'actualizado_en']
+        fields = ['id', 'proyecto', 'autor','contenido', 'creado_en', 'actualizado_en']
         read_only_fields = ['autor', 'creado_en', 'actualizado_en']
 
 class CategoriaSerializer(serializers.ModelSerializer):

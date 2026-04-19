@@ -125,7 +125,7 @@ class Comentario(models.Model):
     autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comentarios')
     contenido = models.TextField()
     creado_en = models.DateTimeField(auto_now_add=True)
-    actualizado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['creado_en']
