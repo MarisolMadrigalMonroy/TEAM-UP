@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 import api from '../api';
 
 /*
@@ -12,23 +13,20 @@ function EditarProyecto({ usuario }) {
     const [proyecto, setProyecto] = useState(null);
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [estado, setEstado] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
     const [habilidades, setHabilidades] = useState([]);
     const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
-    const [error, setError] = useState(null);
     const [errorMensaje, setErrorMensaje] = useState('');
     const navigate = useNavigate();
 
-    const STATUS_OPTIONS = [
-        { value: 'buscando_estudiantes', label: 'Buscando Estudiantes' },
-        { value: 'equipo_completo', label: 'Equipo Completo' },
-        { value: 'buscando_asesor', label: 'Buscando Asesor' },
-        { value: 'en_progreso', label: 'En Progreso' },
-        { value: 'terminado', label: 'Terminado' },
-        { value: 'cancelado', label: 'Cancelado' }
-    ];
+    const estadoLabel = {
+        buscando_estudiantes: "Buscando estudiantes",
+        buscando_asesor: "Buscando asesor",
+        en_progreso: "En progreso",
+        terminado: "Terminado",
+        cancelado: "Cancelado"
+    };
 
     useEffect(() => {
         // Función para obtener datos del proyecto
@@ -51,7 +49,6 @@ function EditarProyecto({ usuario }) {
                 }
                 setNombre(data.nombre);
                 setDescripcion(data.descripcion);
-                setEstado(data.estado || 'buscando_estudiantes');
                 setCategoriasSeleccionadas(data.detalles_categorias.map(cat => cat.id));
                 setHabilidadesSeleccionadas(data.detalles_habilidades_requeridas.map(hab => hab.id));
                 setCategorias(catRes.data);
@@ -103,11 +100,15 @@ function EditarProyecto({ usuario }) {
             return;
         }
 
+        if (proyecto.estado === 'cancelado' || proyecto.estado === 'terminado') {
+            setErrorMensaje('Este proyecto ya no puede modificarse.');
+            return;
+        }
+
         try {
             await api.put(`/api/proyectos/${id}/`, {
                 nombre: nombre,
                 descripcion: descripcion,
-                estado: estado,
                 categorias: categoriasSeleccionadas,
                 habilidades_requeridas: habilidadesSeleccionadas,
             });
@@ -115,6 +116,29 @@ function EditarProyecto({ usuario }) {
         } catch (err) {
             setErrorMensaje('Error al actualizar el proyecto.');
             console.error(err);
+        }
+    };
+
+    const actualizarEstado = async (nuevoEstado) => {
+        try {
+            await api.patch(`/api/proyectos/${id}/`, {
+                estado: nuevoEstado
+            });
+
+            setProyecto(prev => ({
+                ...prev,
+                estado: nuevoEstado
+            }));
+
+            if (nuevoEstado === 'terminado') {
+                toast.success(`✅ Proyecto marcado como terminado`);
+            } else if (nuevoEstado === 'cancelado') {
+                toast.error(`🚫 Proyecto cancelado`);
+            }
+
+        } catch (err) {
+            console.error('Error actualizando estado:', err);
+            toast.error('No se pudo actualizar el estado del proyecto.');
         }
     };
 
@@ -156,17 +180,42 @@ function EditarProyecto({ usuario }) {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                    <Form.Label>Estado</Form.Label>
-                    <Form.Select
-                        value={estado}
-                        onChange={(e) => setEstado(e.target.value)}
-                    >
-                        {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </Form.Select>
+                    <div className="mt-3 d-flex gap-2 flex-wrap">
+                        <Form.Label>Estado</Form.Label>
+                        <span className="badge bg-primary">
+                            {estadoLabel[proyecto.estado]}
+                        </span>
+                    </div>
+                    {proyecto.estado !== 'terminado' && proyecto.estado !== 'cancelado' && (
+                    <div className="d-flex justify-content-end gap-2 mt-3 flex-wrap">
+                        <Button
+                        variant="outline-success"
+                        onClick={() => actualizarEstado('terminado')}
+                        >
+                        Marcar como terminado
+                        </Button>
+
+                        <Button
+                        variant="outline-danger"
+                        onClick={() => actualizarEstado('cancelado')}
+                        >
+                        Cancelar proyecto
+                        </Button>
+                    </div>
+                    )}
+                    <div className="mt-3 d-flex gap-2 flex-wrap">
+                        {proyecto.necesita_estudiantes && (
+                            <span className="badge bg-warning text-dark">
+                                Buscando estudiantes
+                            </span>
+                        )}
+
+                        {proyecto.necesita_asesor && (
+                            <span className="badge bg-info text-dark">
+                                Buscando asesor
+                            </span>
+                        )}
+                    </div>
                 </Form.Group>
 
                 <Form.Group className="mb-3">

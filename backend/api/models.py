@@ -116,6 +116,27 @@ class Proyecto(models.Model):
     )
     embedding = VectorField(dimensions=1536, blank=True, null=True)  # matching
 
+    @property
+    def necesita_estudiantes(self):
+        if self.estado in ['cancelado', 'terminado']:
+            return False
+
+        return self.estudiantes.count() < 3
+
+    @property
+    def necesita_asesor(self):
+        if self.estado in ['cancelado', 'terminado']:
+            return False
+
+        return self.asesor is None
+
+    @property
+    def estado_normalizado(self):
+        if self.estado in ['cancelado', 'terminado', 'en_progreso']:
+            return self.estado
+
+        return 'activo'
+
 class Comentario(models.Model):
     '''
     Modelo que representa comentarios

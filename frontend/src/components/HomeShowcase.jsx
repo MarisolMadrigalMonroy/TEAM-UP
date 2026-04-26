@@ -76,7 +76,7 @@ function HomeShowcase() {
   const proyectosNuevos = listaProyectos
     .filter(p => {
       const diff = dayjs().diff(dayjs(p.creado_en), 'day');
-      return diff >= 0 && diff <= 7;
+      return diff >= 0 && diff <= 7 && p.estado != 'cancelado';
     })
     .slice(0, 3);
 
@@ -87,7 +87,7 @@ function HomeShowcase() {
 
   // proyectos con equipo completo o proyectos completados
   const historiasExito = listaProyectos
-    .filter(p => ['equipo_completo', 'terminado'].includes(p.estado))
+    .filter(p => ['equipo_completo', 'terminado', 'en_progreso', 'buscando_asesor'].includes(p.estado))
     .slice(0, 3);
 
   return (

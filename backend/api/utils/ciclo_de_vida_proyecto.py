@@ -9,13 +9,16 @@ from api.models import (
 )
 
 def cancelar_proyecto(proyecto):
+    if proyecto.estado == "cancelado":
+        return
+    
     estudiantes = list(proyecto.estudiantes.all())
     asesor = proyecto.asesor
 
     # liberar estudiantes
     for estudiante in estudiantes:
         estudiante.estado = "disponible"
-        estudiante.save()
+        estudiante.save(update_fields=["estado"])
 
         Notificacion.objects.create(
             receptor=estudiante,

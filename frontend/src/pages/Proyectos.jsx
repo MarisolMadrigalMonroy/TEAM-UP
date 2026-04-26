@@ -18,17 +18,18 @@ function PaginaProyectos() {
   const [habilidades, setHabilidades] = useState([]);
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState([]);
   const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState([]);
-  const [estadoSeleccionado, setEstadoSeleccionado] = useState('');
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState([]);
+  const [filtrosNeeds, setFiltrosNeeds] = useState({
+    necesita_estudiantes: false,
+    necesita_asesor: false
+  });
 
   const listaCategorias = Array.isArray(categorias) ? categorias : categorias?.results || [];
   const listaHabilidades = Array.isArray(habilidades) ? habilidades : habilidades?.results || [];
   const listaProyectos = Array.isArray(proyectos) ? proyectos : proyectos?.results || [];
 
   const OPCIONES_ESTADO = [
-    { value: '', label: 'Todos los Estados' },
-    { value: 'buscando_estudiantes', label: 'Buscando Estudiantes' },
-    { value: 'equipo_completo', label: 'Equipo Completo' },
-    { value: 'buscando_asesor', label: 'Buscando Asesor' },
+    { value: 'activo', label: 'Activo' },
     { value: 'en_progreso', label: 'En Progreso' },
     { value: 'terminado', label: 'Terminado' },
     { value: 'cancelado', label: 'Cancelado' },
@@ -61,7 +62,17 @@ function PaginaProyectos() {
         if (busqueda) parametros.append('busqueda', busqueda);
         categoriasSeleccionadas.forEach(cat => parametros.append('categoria', cat));
         habilidadesSeleccionadas.forEach(hab => parametros.append('habilidad', hab));
-        if (estadoSeleccionado) parametros.append('estado', estadoSeleccionado);
+        estadoSeleccionado.forEach(e =>
+          parametros.append('estado', e)
+        );
+
+        if (filtrosNeeds.necesita_estudiantes) {
+          parametros.append('necesita_estudiantes', true);
+        }
+
+        if (filtrosNeeds.necesita_asesor) {
+          parametros.append('necesita_asesor', true);
+        }
 
         const res = await api.get(`/api/proyectos/?${parametros.toString()}`);
         setProyectos(res.data);
@@ -72,12 +83,36 @@ function PaginaProyectos() {
 
     const temporizador = setTimeout(obtenerProyectos, 300);
     return () => clearTimeout(temporizador);
-  }, [busqueda, categoriasSeleccionadas, habilidadesSeleccionadas, estadoSeleccionado]);
+  }, [busqueda, categoriasSeleccionadas, habilidadesSeleccionadas, estadoSeleccionado, filtrosNeeds.necesita_estudiantes, filtrosNeeds.necesita_asesor]);
 
   const handleCheckboxChange = (valor, lista, setLista) => {
     setLista(prev =>
       prev.includes(valor) ? prev.filter(id => id !== valor) : [...prev, valor]
     );
+  };
+
+  const toggleEstado = (estado) => {
+    setEstadoSeleccionado(prev => {
+      const isSelected = prev.includes(estado);
+
+      if (isSelected) {
+        return prev.filter(e => e !== estado);
+      }
+
+      if (['cancelado', 'terminado'].includes(estado)) {
+        setFiltrosNeeds({
+          necesita_estudiantes: false,
+          necesita_asesor: false
+        });
+
+        return [estado];
+      }
+
+      return [
+        ...prev.filter(e => !['cancelado', 'terminado'].includes(e)),
+        estado
+      ];
+    });
   };
 
   return (
@@ -107,16 +142,44 @@ function PaginaProyectos() {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Estado</Form.Label>
-                <Form.Select
-                  value={estadoSeleccionado}
-                  onChange={(e) => setEstadoSeleccionado(e.target.value)}
-                >
-                  {OPCIONES_ESTADO.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Form.Select>
+                <Form.Label>Estado del Proyecto</Form.Label>
+
+                {OPCIONES_ESTADO.map(opt => (
+                  <Form.Check
+                    key={opt.value}
+                    type="checkbox"
+                    label={opt.label}
+                    checked={estadoSeleccionado.includes(opt.value)}
+                    onChange={() => toggleEstado(opt.value)}
+                  />
+                ))}
               </Form.Group>
+
+              <Form.Check
+                type="checkbox"
+                label="Busca estudiantes"
+                disabled={estadoSeleccionado.includes('cancelado') || estadoSeleccionado.includes('terminado')}
+                checked={filtrosNeeds.necesita_estudiantes}
+                onChange={() =>
+                  setFiltrosNeeds(prev => ({
+                    ...prev,
+                    necesita_estudiantes: !prev.necesita_estudiantes
+                  }))
+                }
+              />
+
+              <Form.Check
+                type="checkbox"
+                label="Busca asesor"
+                disabled={estadoSeleccionado.includes('cancelado') || estadoSeleccionado.includes('terminado')}
+                checked={filtrosNeeds.necesita_asesor}
+                onChange={() =>
+                  setFiltrosNeeds(prev => ({
+                    ...prev,
+                    necesita_asesor: !prev.necesita_asesor
+                  }))
+                }
+              />
 
               <Form.Group className="mb-3">
                 <Form.Label>Categorias</Form.Label>
@@ -155,6 +218,16 @@ function PaginaProyectos() {
                 <Card className="h-100 shadow-sm">
                   <Card.Body className="d-flex flex-column">
                     <Card.Title>{proy.nombre}</Card.Title>
+
+                    <div className="mt-2 d-flex gap-2 flex-wrap">
+                      {proy.necesita_estudiantes && (
+                        <span className="badge bg-warning">Busca estudiantes</span>
+                      )}
+
+                      {proy.necesita_asesor && (
+                        <span className="badge bg-info">Busca asesor</span>
+                      )}
+                    </div>
 
                     <Card.Text
                       style={{

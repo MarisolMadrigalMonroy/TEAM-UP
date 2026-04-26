@@ -110,12 +110,16 @@ class ProyectoSerializer(serializers.ModelSerializer):
     detalles_categorias = CategoriaSerializer(many=True, read_only=True, source='categorias')
     detalles_habilidades_requeridas = HabilidadSerializer(many=True, read_only=True, source='habilidades_requeridas')
     tiene_like = serializers.SerializerMethodField()
+    estado_normalizado = serializers.SerializerMethodField()
+    necesita_estudiantes = serializers.SerializerMethodField()
+    necesita_asesor = serializers.SerializerMethodField()
 
     class Meta:
         model = Proyecto
         fields = [
             'id', 'creado_en', 'nombre', 'descripcion', 'asesor', 'creador', 'estudiantes', 'categorias', 
-            'habilidades_requeridas', 'detalles_categorias', 'detalles_habilidades_requeridas', 'estado', 'tiene_like']
+            'habilidades_requeridas', 'detalles_categorias', 'detalles_habilidades_requeridas', 'estado', 'tiene_like',
+            'estado_normalizado', 'necesita_estudiantes', 'necesita_asesor']
         read_only_fields = ['embedding']
     
     def validate_estudiantes(self, usuarios):
@@ -185,6 +189,15 @@ class ProyectoSerializer(serializers.ModelSerializer):
                 'Selecciona al menos una habilidade requerida.'
             })
         return value
+
+    def get_estado_normalizado(self, obj):
+        return obj.estado_normalizado
+
+    def get_necesita_estudiantes(self, obj):
+        return obj.necesita_estudiantes
+
+    def get_necesita_asesor(self, obj):
+        return obj.necesita_asesor
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     intereses = serializers.PrimaryKeyRelatedField(many=True, queryset=Interes.objects.all())

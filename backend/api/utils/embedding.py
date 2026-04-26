@@ -1,6 +1,6 @@
 # utils/embedding.py
 
-from django.db.models import F, Q
+from django.db.models import F, Q, Count
 from pgvector.django import L2Distance
 from api.models import User, Proyecto, InteresSobreUsuario, Match, InteresSobreProyecto
 from openai import OpenAI
@@ -144,33 +144,31 @@ def obtener_proyectos_similares_para_usuario(usuario, top_k=10):
     if usuario.embedding is None:
         return Proyecto.objects.none()
 
-    # Excluir proyectos a los que ya se les dió me gusta
     proyectos_excluidos_ids = set(
-        InteresSobreProyecto.objects.filter(usuario=usuario).values_list('proyecto_id', flat=True)
+        InteresSobreProyecto.objects.filter(usuario=usuario)
+        .values_list('proyecto_id', flat=True)
     )
 
-    # Excluir proyectos con los que ya se hizo match
     proyectos_excluidos_ids.update(
-        Match.objects.filter(usuario=usuario).values_list('proyecto_id', flat=True)
+        Match.objects.filter(usuario=usuario)
+        .values_list('proyecto_id', flat=True)
     )
 
-    # Excluir proyectos de los cuales se es creador o mentor
     proyectos_excluidos_ids.update(
-        Proyecto.objects.filter(Q(creador=usuario) | Q(asesor=usuario)).values_list('id', flat=True)
+        Proyecto.objects.filter(Q(creador=usuario) | Q(asesor=usuario))
+        .values_list('id', flat=True)
     )
-
-    estados_no_disponibles = [
-        'equipo_completo',
-        'terminado',
-        'cancelado',
-    ]
 
     candidatos = Proyecto.objects.filter(
         embedding__isnull=False
     ).exclude(
         id__in=proyectos_excluidos_ids
     ).exclude(
-        estado__in=estados_no_disponibles
+        estado__in=['terminado', 'cancelado']
+    ).annotate(
+        num_estudiantes=Count('estudiantes')
+    ).filter(
+        Q(num_estudiantes__lt=3) | Q(asesor__isnull=True)
     )
 
     return candidatos.annotate(

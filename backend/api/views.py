@@ -12,13 +12,14 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
+from django.db.models import Q, Count
 from .utils.embedding import obtener_estudiantes_similares_para_proyecto, obtener_asesores_similares_para_proyecto,  obtener_proyectos_similares_para_usuario
 from pgvector.django import VectorField
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from pgvector.django import L2Distance
 from api.utils.ciclo_de_vida_proyecto import cancelar_proyecto
+from api.utils.proyecto_estado import actualizar_estado_proyecto
 
 class EsCreadorDeProyectoOAsesor(permissions.BasePermission):
     '''
@@ -86,7 +87,7 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
 
         busqueda = params.get('busqueda')
-        estado_param = params.get('estado')
+        estado_params = params.getlist('estado')
         categoria_ids = params.getlist('categoria')
         habilidad_ids = params.getlist('habilidad')
 
@@ -102,10 +103,64 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if habilidad_ids:
             queryset = queryset.filter(habilidades_requeridas__id__in=habilidad_ids)
 
-        if estado_param:
-            queryset = queryset.filter(estado=estado_param)
+        if estado_params:
+            estados_reales = set()
+
+            for estado in estado_params:
+                if estado == 'activo':
+                    estados_reales.update([
+                        'buscando_estudiantes',
+                        'buscando_asesor',
+                        'equipo_completo'
+                    ])
+                else:
+                    estados_reales.add(estado)
+
+            queryset = queryset.filter(estado__in=list(estados_reales))
+
+        if params.get('necesita_estudiantes'):
+            queryset = queryset.annotate(
+                num_estudiantes=Count('estudiantes')
+            ).filter(num_estudiantes__lt=3)
+
+        if params.get('necesita_asesor'):
+            queryset = queryset.filter(asesor__isnull=True)
 
         return queryset.distinct()
+
+    def partial_update(self, request, *args, **kwargs):
+        proyecto = self.get_object()
+
+        if request.user.id != proyecto.creador_id:
+            return Response(
+                {'detail': 'No tienes permiso para modificar este proyecto.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if proyecto.estado in ['terminado', 'cancelado']:
+            return Response(
+                {'detail': 'No se puede modificar un proyecto finalizado o cancelado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        estado = request.data.get('estado')
+
+        if estado:
+            if estado == 'cancelado':
+                cancelar_proyecto(proyecto)
+                return Response({'estado': 'cancelado'})
+
+            if estado == 'terminado':
+                proyecto.estado = 'terminado'
+                proyecto.save(update_fields=['estado'])
+                return Response({'estado': proyecto.estado})
+
+            return Response(
+                {'detail': 'Estado no permitido.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().partial_update(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -137,11 +192,15 @@ class ProyectoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if proyecto.estado in ["cancelado", "completado"]:
+        if proyecto.estado in ["cancelado", "terminado"]:
             return Response(
                 {'detail': f'No se puede editar un proyecto {proyecto.estado}.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        estado = request.data.get('estado')
+        if estado not in ['en_progreso', 'terminado', 'cancelado']:
+            request.data.pop('estado', None)
 
         return super().update(request, *args, **kwargs)
 
@@ -172,9 +231,7 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'El proyecto ya cuenta con 3 estudiantes.'}, status=status.HTTP_400_BAD_REQUEST)
 
         proyecto.estudiantes.add(usuario)
-        if proyecto.estudiantes.count() == 3:
-            proyecto.estado = 'equipo_completo'
-            proyecto.save()
+        actualizar_estado_proyecto(proyecto)
         
         if usuario.estado != "registrado":
             usuario.estado = "registrado"
@@ -230,9 +287,7 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
 
         proyecto.estudiantes.remove(usuario)
-        if proyecto.estudiantes.count() < 3 and proyecto.estado == 'equipo_completo':
-            proyecto.estado = 'buscando_estudiantes'
-            proyecto.save(update_fields=["estado"])
+        actualizar_estado_proyecto(proyecto)
         
         usuario.estado = "disponible"
         usuario.save(update_fields=["estado"])
@@ -268,6 +323,12 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if not asesor_id:
             return Response({'error': 'Se requiere asesor_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if proyecto.estado in ['cancelado', 'terminado']:
+            return Response(
+                {'error': 'No se puede asignar asesor a un proyecto finalizado o cancelado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         if proyecto.asesor is not None:
             return Response(
                 {'error': 'Este proyecto ya cuenta con un asesor.'},
@@ -280,7 +341,8 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Asesor no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         proyecto.asesor = asesor
-        proyecto.save()
+        proyecto.save(update_fields=["asesor"])
+        actualizar_estado_proyecto(proyecto)
 
         if asesor.estado != "registrado":
             asesor.estado = "registrado"
@@ -316,6 +378,12 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if not proyecto.asesor:
             return Response({'error': 'Este proyecto no tiene un asesor.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if proyecto.estado in ['cancelado', 'terminado']:
+            return Response(
+                {'error': 'No se puede modificar un proyecto cancelado o terminado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         asesor_removido = proyecto.asesor
         if proyecto.creador_id == proyecto.asesor_id:
             cancelar_proyecto(proyecto)
@@ -330,6 +398,8 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         if not asesor_removido.proyectos_asesorados.exists():
             asesor_removido.estado = 'disponible'
             asesor_removido.save(update_fields=['estado'])
+
+        actualizar_estado_proyecto(proyecto)
 
         Notificacion.objects.create(
             receptor=asesor_removido,

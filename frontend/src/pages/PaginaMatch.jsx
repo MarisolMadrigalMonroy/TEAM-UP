@@ -28,7 +28,6 @@ function PaginaMatch({ usuario, refrescarNotificaciones }) {
 
           return creadorId === usuarioId || asesorId === usuarioId;
         });
-        console.log(usuario)
 
         setPoseeProyectos(proyectosPoseidos.length > 0);
       } catch (err) {

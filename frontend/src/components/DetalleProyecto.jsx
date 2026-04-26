@@ -218,6 +218,32 @@ function DetalleProyecto({ refrescarNotificaciones }) {
                                     <Card.Header>Detalles del Proyecto</Card.Header>
                                     <ListGroup variant="flush">
                                         <ListGroup.Item>
+                                        <strong>Estado:</strong>{' '}
+                                        <div className="d-flex gap-2 mt-1 flex-wrap">
+                                            {proyecto.estado === 'en_progreso' && (
+                                            <span className="badge bg-primary">En progreso</span>
+                                            )}
+                                            {proyecto.estado === 'terminado' && (
+                                            <span className="badge bg-success">Terminado</span>
+                                            )}
+                                            {proyecto.estado === 'cancelado' && (
+                                            <span className="badge bg-danger">Cancelado</span>
+                                            )}
+
+                                            {proyecto.necesita_estudiantes && (
+                                            <span className="badge bg-warning text-dark">
+                                                Buscando estudiantes
+                                            </span>
+                                            )}
+
+                                            {proyecto.necesita_asesor && (
+                                            <span className="badge bg-info text-dark">
+                                                Buscando asesor
+                                            </span>
+                                            )}
+                                        </div>
+                                        </ListGroup.Item>
+                                        <ListGroup.Item>
                                             <strong>Asesor:</strong>{' '}
                                             {proyecto.asesor ? (
                                                 <div className="d-flex justify-content-between align-items-center w-100">
