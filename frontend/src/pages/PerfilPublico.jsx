@@ -251,7 +251,7 @@ function PerfilPublico({ usuario, refrescarNotificaciones }) {
 
             <Button
               onClick={handleLikeUsuario}
-              disabled={enviandoInteres || yaMostroInteres}
+              disabled={enviandoInteres || yaMostroInteres || perfil.estado!== 'disponible'}
               variant={yaMostroInteres ? "outline-success" : "success" }
             >
               {yaMostroInteres

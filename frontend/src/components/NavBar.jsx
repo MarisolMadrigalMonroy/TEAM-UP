@@ -28,7 +28,6 @@ function NavigationBar({
                 <Navbar.Toggle aria-controls="main-navbar" />
                 <Navbar.Collapse id="main-navbar">
                     <Nav className="me-auto">
-                        <Nav.Link as={Link} to="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/proyectos">Proyectos</Nav.Link>
                         {/* Si el usuario está autenticado y es asesor o no tiene proyecto, puede crear un proyecto */}
                         {isAuthenticated && (
