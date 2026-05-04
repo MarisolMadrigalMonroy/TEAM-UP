@@ -43,7 +43,9 @@ function NavigationBar({
                         )}
                         {/* Si está autenticado puede buscar un match */}
                         {isAuthenticated && (
-                            <Nav.Link as={Link} to="/match">Encuentra Un Match</Nav.Link>
+                            (usuario?.tipo_usuario === 'asesor' || (usuario?.tipo_usuario === 'estudiante' && usuario?.proyectos?.length === 0)) && (
+                                <Nav.Link as={Link} to="/match">Encuentra Un Match</Nav.Link>
+                            )
                         )}
 
                     </Nav>

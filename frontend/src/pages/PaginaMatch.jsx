@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import UsuariosSugeridos from './UsuariosSugeridos';
 import ProyectosSugeridos from './ProyectosSugeridos';
 import api from '../api';
+import { useNavigate } from 'react-router-dom';
 
 /*
 * Componente que representa la página para mostrar sugerencias de match 
@@ -9,12 +10,19 @@ import api from '../api';
 function PaginaMatch({ usuario, refrescarNotificaciones }) {
   const [poseeProyectos, setPoseeProyectos] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!usuario?.id) return;
 
     const validarPropiedad = async () => {
       try {
+        // Si el usuario es estudiante y es parte de un proyecto
+        if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0) {
+            alert('Ya eres parte de un proyecto, no puedes hacer match con otro.');
+            navigate('/');
+            return;
+        }
         const res = await api.get('/api/proyectos/');
         const usuarioId = Number(usuario.id);
 
