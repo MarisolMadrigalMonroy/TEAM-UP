@@ -427,6 +427,10 @@ function DetalleProyecto({ refrescarNotificaciones }) {
 
                                         if (esEstudianteEnUnProyecto) return null;
 
+                                        if (esEstudiante && !proyecto.necesita_estudiantes) return null;
+
+                                        if (esAsesor && !proyecto.necesita_asesor) return null;
+
                                         if (liked) {
                                             return (
                                             <ListGroupItem>
