@@ -227,6 +227,10 @@ function PaginaProyectos() {
                       {proy.necesita_asesor && (
                         <span className="badge bg-info">Busca asesor</span>
                       )}
+
+                      {proy.estado === 'cancelado' && (
+                        <span className="badge bg-danger">Cancelado</span>
+                      )}
                     </div>
 
                     <Card.Text
