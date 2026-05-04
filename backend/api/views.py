@@ -57,6 +57,16 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         return Comentario.objects.filter(proyecto_id=self.kwargs['proyecto_pk'])
 
     def perform_create(self, serializer):
+        usuario = self.request.user
+        proyecto = Proyecto.objects.get(id=self.kwargs['proyecto_pk'])
+        if proyecto.creador != usuario:
+            Notificacion.objects.create(
+                receptor=proyecto.creador,
+                mensaje=(
+                    f"¡{usuario} agregó un comentario en tu proyecto '{proyecto.nombre}'!"
+                ),
+                proyecto_relacionado=proyecto
+            )
         serializer.save(autor=self.request.user, proyecto_id=self.kwargs['proyecto_pk'])
 
 class CreateUserView(generics.CreateAPIView):
