@@ -207,10 +207,14 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
         read_only=True,
         source='proyectos_como_estudiante'
     )
+    proyectos_creados = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = User
-        fields = ['id', 'intereses', 'habilidades', 'estado', 'tipo_usuario', 'proyectos', 'bio']
+        fields = ['id', 'intereses', 'habilidades', 'estado', 'tipo_usuario', 'proyectos', 'proyectos_creados', 'bio']
     
     def update(self, instance, validated_data):
         intereses = validated_data.pop('intereses', None)

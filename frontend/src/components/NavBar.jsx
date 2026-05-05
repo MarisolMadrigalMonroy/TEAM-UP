@@ -41,9 +41,13 @@ function NavigationBar({
                                 <Nav.Link as={Link} to="/mis-proyectos">Mis Proyectos</Nav.Link>
                             )
                         )}
-                        {/* Si está autenticado puede buscar un match */}
+                        {/* Si está autenticado y es asesor o estudiante sin proyecto creador de proyecto puede buscar un match */}
                         {isAuthenticated && (
-                            (usuario?.tipo_usuario === 'asesor' || (usuario?.tipo_usuario === 'estudiante' && usuario?.proyectos?.length === 0)) && (
+                            (
+                                usuario?.tipo_usuario === 'asesor' ||
+                                (usuario?.tipo_usuario === 'estudiante' && usuario?.proyectos?.length === 0) ||
+                                (usuario?.tipo_usuario === 'estudiante' && usuario?.proyectos_creados?.length > 0)
+                            ) && (
                                 <Nav.Link as={Link} to="/match">Encuentra Un Match</Nav.Link>
                             )
                         )}

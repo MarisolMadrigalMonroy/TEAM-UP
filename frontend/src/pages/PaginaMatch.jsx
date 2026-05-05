@@ -18,7 +18,7 @@ function PaginaMatch({ usuario, refrescarNotificaciones }) {
     const validarPropiedad = async () => {
       try {
         // Si el usuario es estudiante y es parte de un proyecto
-        if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0) {
+        if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0 && usuario.proyectos_creados.length === 0) {
             alert('Ya eres parte de un proyecto, no puedes hacer match con otro.');
             navigate('/');
             return;
