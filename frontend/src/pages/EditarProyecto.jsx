@@ -43,7 +43,7 @@ function EditarProyecto({ usuario }) {
                 if (!usuario || 
                     (usuario.id !== data.creador?.id && usuario.id !== data.asesor?.id)
                 ) {
-                    alert('No estás autorizado para editar este proyecto.');
+                    toast.info("No estás autorizado para editar este proyecto.");
                     navigate(`/proyectos/${id}`);
                     return;
                 }

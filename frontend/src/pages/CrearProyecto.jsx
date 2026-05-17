@@ -4,6 +4,7 @@ import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { obtenerPerfilUsuario } from '../auth';
+import { toast } from 'react-toastify';
 
 /*
  * Componente para crear un proyeccto
@@ -28,7 +29,7 @@ function CrearProyecto({ setUsuario }) {
 
                 // Si el usuario es estudiante y es parte de un proyecto
                 if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0) {
-                    alert('Ya eres parte de un proyecto, no puedes crear uno nuevo.');
+                    toast.info("Ya eres parte de un proyecto, no puedes crear uno nuevo.");
                     navigate('/');
                     return;
                 }

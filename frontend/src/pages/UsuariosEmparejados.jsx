@@ -45,7 +45,7 @@ export default function UsuariosEmparejados({ refrescarNotificaciones }) {
       toast.success(`🎉 Agregaste a ${res.data.usuario.username} en "${proyecto.nombre}"!`);
     } catch (err) {
       console.error("Error asignando usuario", err);
-      alert("Error asignando usuario");
+      toast.info("Error asignando usuario.");
     }
   };
 

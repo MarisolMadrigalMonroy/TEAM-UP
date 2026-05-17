@@ -3,6 +3,7 @@ import UsuariosSugeridos from './UsuariosSugeridos';
 import ProyectosSugeridos from './ProyectosSugeridos';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 /*
 * Componente que representa la página para mostrar sugerencias de match 
@@ -19,7 +20,7 @@ function PaginaMatch({ usuario, refrescarNotificaciones }) {
       try {
         // Si el usuario es estudiante y es parte de un proyecto
         if (usuario.tipo_usuario === 'estudiante' && usuario.proyectos.length > 0 && usuario.proyectos_creados.length === 0) {
-            alert('Ya eres parte de un proyecto, no puedes hacer match con otro.');
+            toast.info("Ya eres parte de un proyecto, no puedes hacer match con otro.");
             navigate('/');
             return;
         }
@@ -33,8 +34,9 @@ function PaginaMatch({ usuario, refrescarNotificaciones }) {
           const asesorId = typeof proyecto.asesor === 'object'
             ? proyecto.asesor?.id
             : proyecto.asesor;
+          const esActivo = proyecto.estado_normalizado === 'activo'
 
-          return creadorId === usuarioId || asesorId === usuarioId;
+          return esActivo && (creadorId === usuarioId || asesorId === usuarioId);
         });
 
         setPoseeProyectos(proyectosPoseidos.length > 0);

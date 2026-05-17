@@ -127,7 +127,7 @@ function PerfilPublico({ usuario, refrescarNotificaciones }) {
 
     } catch (err) {
       console.error('Error mostrando interés:', err);
-      alert('No fue posible mostrar interés.');
+      toast.info("No fue posible mostrar interés.");
     } finally {
       setEnviandoInteres(false);
     }

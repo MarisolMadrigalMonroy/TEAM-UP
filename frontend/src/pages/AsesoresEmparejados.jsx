@@ -40,7 +40,7 @@ export default function AsesoresEmparejados({ refrescarNotificaciones }) {
       toast.success(`🎉 Agregaste a ${res.data.usuario.username} en "${proyecto.nombre}"!`);
     } catch (err) {
       console.error("Error asignando asesor", err);
-      alert("Error asignando el asesor");
+      toast.info("Error asignando el asesor");
     }
   };
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { Form, Button, Container, Row, Col, Card } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 
 /*
 * Componente para editar perfil de usuario
@@ -81,11 +82,11 @@ function EditarPerfil() {
             setHabilidadesOriginales(habilidadesSeleccionadas);
             setBioOriginal(bio);
 
-            alert('Perfil actualizado.');
             setEditando(false);
+            toast.info("Perfil actualizado");
         } catch (error) {
             console.error('Error actualizando el perfil:', error);
-            alert('Error actualizando el perfil.');
+            toast.info("Error actualizando el perfil.");
         }
     };
 
