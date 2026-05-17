@@ -167,9 +167,16 @@ def obtener_proyectos_similares_para_usuario(usuario, top_k=10):
         estado__in=['terminado', 'cancelado']
     ).annotate(
         num_estudiantes=Count('estudiantes')
-    ).filter(
-        Q(num_estudiantes__lt=3) | Q(asesor__isnull=True)
     )
+
+    if usuario.es_estudiante():
+        candidatos = candidatos.filter(
+            num_estudiantes__lt=3
+        )
+    elif usuario.es_asesor():
+        candidatos = candidatos.filter(
+            asesor__isnull=True
+        )
 
     return candidatos.annotate(
         distance=L2Distance(F('embedding'), usuario.embedding)
