@@ -114,6 +114,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+print(f'DATABASE_URL {os.environ.get("DATABASE_URL")}')
 DATABASES = {
     #'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
@@ -128,7 +129,9 @@ DATABASES = {
     #    'PORT': '5432',
     #}
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL')
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
     )
 }
 
