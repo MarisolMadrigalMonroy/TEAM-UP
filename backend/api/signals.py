@@ -5,6 +5,7 @@ from django.dispatch import receiver
 from .models import User, Proyecto
 from .utils.embedding import obtener_embedding, construir_texto_embedding_usuario, construir_texto_embedding_proyecto
 import numpy as np
+import sys
 
 @receiver(post_save, sender=User)
 def actualizar_embedding_de_usuario(sender, instance, created, **kwargs):
@@ -29,6 +30,8 @@ def actualizar_embedding_de_usuario(sender, instance, created, **kwargs):
         created (bool): Si la instancia fue creada o no.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
+    if 'migrate' in sys.argv:
+        return
     entrada = construir_texto_embedding_usuario(instance)
     if not entrada:
         return
@@ -57,6 +60,8 @@ def actualizar_embedding_de_usuario_sobre_intereses(sender, instance, action, **
         action: La acción que activó la señal.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
+    if 'migrate' in sys.argv:
+        return
     if action in ["post_add", "post_remove", "post_clear"]:
         entrada = construir_texto_embedding_usuario(instance)
         if entrada:
@@ -85,6 +90,8 @@ def actualizar_embedding_de_usuario_sobre_habilidades(sender, instance, action, 
         action: La acción que activó la señal.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
+    if 'migrate' in sys.argv:
+        return
     if action in ["post_add", "post_remove", "post_clear"]:
         entrada = construir_texto_embedding_usuario(instance)
         if entrada:
@@ -115,6 +122,8 @@ def actualizar_embedding_de_proyecto(sender, instance, **kwargs):
         instance (Proyecto): La instancia guardada del usuario.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
+    if 'migrate' in sys.argv:
+        return
     if not instance.pk:
         return
 
@@ -152,6 +161,8 @@ def actualizar_embedding_de_proyecto_sobre_habilidades(sender, instance, action,
         action: La acción que activó la señal.
         **kwargs: Argumentos adicionales pasados por la señal.
     """
+    if 'migrate' in sys.argv:
+        return
     if action in ["post_add", "post_remove", "post_clear"]:
         entrada = construir_texto_embedding_proyecto(instance)
         if entrada:
