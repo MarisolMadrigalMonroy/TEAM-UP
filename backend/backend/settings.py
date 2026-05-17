@@ -68,12 +68,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
-    'api',
+    'api.apps.ApiConfig'
     'rest_framework',
     'corsheaders',
     'django_filters',
     'pgvector.django',
-    'api.apps.ApiConfig'
 ]
 
 STATIC_URL = 'static/'
