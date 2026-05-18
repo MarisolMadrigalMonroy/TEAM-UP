@@ -92,6 +92,9 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'backend.urls'
+CORS_ALLOWED_ORIGINS = [
+    "https://team-up-flax.vercel.app",
+]
 
 TEMPLATES = [
     {
